@@ -85,9 +85,9 @@ export default function TopicPanel({
           </div>
           <div className="space-y-3">
             {topic.codes?.length > 0 ? (
-              topic.codes.map((code) => (
+              topic.codes.map((code, codeIndex) => (
                 <button
-                  key={code.label}
+                  key={`${code.label}-${codeIndex}`}
                   type="button"
                   onClick={() => onOpenCode(topic, code)}
                   className="w-full rounded-3xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-slate-500"

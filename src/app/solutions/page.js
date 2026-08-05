@@ -41,11 +41,11 @@ export default async function SolutionsPage() {
                                         {topic.codes?.length ?? 0} solution{topic.codes?.length === 1 ? '' : 's'}
                                     </span>
                                 </div>
-                                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                                <div className="mt-6 grid gap-4">
                                     {topic.codes?.length ? (
-                                        topic.codes.map((code) => (
+                                        topic.codes.map((code, codeIndex) => (
                                             <div
-                                                key={code.label}
+                                                key={`${code.label}-${codeIndex}`}
                                                 className="rounded-[1.5rem] border border-slate-800/80 bg-slate-950/90 p-5 text-sm text-slate-300"
                                             >
                                                 <div className="flex min-w-0 items-center justify-between gap-4">

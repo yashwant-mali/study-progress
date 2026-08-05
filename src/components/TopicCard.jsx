@@ -16,9 +16,9 @@ export default function TopicCard({ topic, onOpenCode }) {
         </span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {topic.codes?.map((code) => (
+        {topic.codes?.map((code, codeIndex) => (
           <button
-            key={code.label}
+            key={`${code.label}-${codeIndex}`}
             type="button"
             onClick={() => onOpenCode(topic, code)}
             className="rounded-3xl border border-slate-200/90 bg-slate-50 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
