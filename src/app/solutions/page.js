@@ -7,10 +7,10 @@ export default async function SolutionsPage() {
     return (
         <main className="min-h-screen bg-slate-950 text-slate-100">
             <div className="mx-auto grid max-w-[1200px] gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                <div className="rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-6 shadow-2xl shadow-slate-950/40">
+                <div className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 p-6 shadow-2xl shadow-slate-950/40 ring-1 ring-slate-800/80">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Code Solutions</p>
+                            <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Code Solutions</p>
                             <h1 className="mt-3 text-4xl font-semibold text-white">Solutions by topic</h1>
                             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
                                 Explore all code examples grouped by topic on a dedicated page.
@@ -30,14 +30,14 @@ export default async function SolutionsPage() {
                         {topics.map((topic) => (
                             <article
                                 key={topic._id}
-                                className="overflow-hidden rounded-[2rem] border border-slate-800/80 bg-slate-900 p-6 shadow-2xl shadow-slate-950/40"
+                                className="overflow-hidden rounded-[2rem] border border-slate-800/80 bg-slate-900 p-6 shadow-2xl shadow-slate-950/40 transition duration-200 hover:-translate-y-0.5 hover:border-slate-700"
                             >
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
                                         <h2 className="text-2xl font-semibold text-white">{topic.title}</h2>
                                         <p className="mt-2 text-sm text-slate-400">{topic.category || 'General'}</p>
                                     </div>
-                                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-200">
+                                    <span className="rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 px-3 py-1 text-sm font-semibold text-slate-950 shadow-sm shadow-cyan-500/10">
                                         {topic.codes?.length ?? 0} solution{topic.codes?.length === 1 ? '' : 's'}
                                     </span>
                                 </div>

@@ -1,13 +1,13 @@
 export default function Sidebar({ categories, isMobileOpen, onClose }) {
   const sidebarContent = (
     <>
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-lg font-bold text-white shadow-lg shadow-violet-500/20">
+          <div className="grid h-12 w-12 place-items-center rounded-3xl bg-gradient-to-br from-cyan-400 to-sky-500 text-lg font-bold text-slate-950 shadow-lg shadow-cyan-500/20">
             SF
           </div>
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">
+            <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
               StudyFlow
             </p>
             <h1 className="text-xl font-semibold text-white">Dashboard</h1>
@@ -16,27 +16,31 @@ export default function Sidebar({ categories, isMobileOpen, onClose }) {
       </div>
 
       <nav className="space-y-4 text-sm text-slate-300">
-        <div className="rounded-3xl bg-slate-900/80 p-4 text-slate-100 shadow-inner shadow-slate-950/20">
+        <div className="rounded-3xl bg-slate-900/90 p-4 text-slate-100 shadow-inner shadow-slate-950/20">
           <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
             Study
           </p>
           <ul className="mt-4 space-y-3">
-            <li className="rounded-2xl bg-slate-800 px-4 py-3 text-slate-100 shadow-sm">
+            <li className="rounded-3xl bg-slate-800 px-4 py-3 text-slate-100 shadow-sm">
               Topics
             </li>
-            <li className="rounded-2xl px-4 py-3 transition hover:bg-slate-800">
-              <a href="/notes">All Notes</a>
+            <li className="rounded-3xl px-4 py-3 transition hover:bg-slate-800">
+              <a href="/notes" className="block">
+                All Notes
+              </a>
             </li>
-            <li className="rounded-2xl px-4 py-3 transition hover:bg-slate-800">
-              <a href="/solutions">Code Solutions</a>
+            <li className="rounded-3xl px-4 py-3 transition hover:bg-slate-800">
+              <a href="/solutions" className="block">
+                Code Solutions
+              </a>
             </li>
-            <li className="rounded-2xl px-4 py-3 transition hover:bg-slate-800">
+            <li className="rounded-3xl px-4 py-3 transition hover:bg-slate-800">
               Bookmarks
             </li>
           </ul>
         </div>
 
-        <div className="rounded-3xl bg-slate-900/80 p-4 text-slate-100 shadow-inner shadow-slate-950/20">
+        <div className="rounded-3xl bg-slate-900/90 p-4 text-slate-100 shadow-inner shadow-slate-950/20">
           <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
             <span>Collections</span>
             <button
@@ -50,7 +54,7 @@ export default function Sidebar({ categories, isMobileOpen, onClose }) {
             {categories.slice(0, 5).map((category) => (
               <li
                 key={category}
-                className="rounded-2xl px-3 py-2 transition hover:bg-slate-800"
+                className="rounded-3xl px-3 py-2 transition hover:bg-slate-800"
               >
                 {category}
               </li>
@@ -59,14 +63,14 @@ export default function Sidebar({ categories, isMobileOpen, onClose }) {
         </div>
       </nav>
 
-      <div className="mt-auto rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-slate-200 shadow-xl shadow-slate-950/30">
+      <div className="mt-auto rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-800 p-5 text-slate-200 shadow-xl shadow-slate-950/30">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
           Study streak
         </p>
-        <p className="mt-3 text-3xl font-semibold">12</p>
+        <p className="mt-3 text-3xl font-semibold text-white">12</p>
         <p className="mt-2 text-sm text-slate-400">Keep it up!</p>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
-          <div className="h-full w-4/5 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
+          <div className="h-full w-4/5 rounded-full bg-gradient-to-r from-cyan-400 to-sky-500" />
         </div>
       </div>
     </>
