@@ -41,7 +41,7 @@ export default async function SolutionsPage() {
                                         {topic.codes?.length ?? 0} solution{topic.codes?.length === 1 ? '' : 's'}
                                     </span>
                                 </div>
-                                                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                                <div className="mt-6 grid gap-4 md:grid-cols-2">
                                     {topic.codes?.length ? (
                                         topic.codes.map((code) => (
                                             <div
