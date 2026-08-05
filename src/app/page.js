@@ -28,6 +28,7 @@ export default function Home() {
   const [editingTopic, setEditingTopic] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [importText, setImportText] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const selectedTopic = useMemo(
     () => topics.find((topic) => topic._id === selectedTopicId) || null,
@@ -171,10 +172,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto grid max-w-[1700px] gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[280px_1fr]">
-        <Sidebar categories={categories} />
+        <Sidebar categories={categories} isMobileOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
         <div className="space-y-6">
-          <MobileHeader />
+          <MobileHeader onOpenMenu={() => setIsMobileMenuOpen(true)} />
           <DashboardHeader
             stats={{
               topicsAdded,

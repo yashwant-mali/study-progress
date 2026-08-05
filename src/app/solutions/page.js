@@ -41,21 +41,21 @@ export default async function SolutionsPage() {
                                         {topic.codes?.length ?? 0} solution{topic.codes?.length === 1 ? '' : 's'}
                                     </span>
                                 </div>
-                                <div className="mt-6 grid gap-4">
+                                                <div className="mt-6 grid gap-4 md:grid-cols-2">
                                     {topic.codes?.length ? (
                                         topic.codes.map((code) => (
                                             <div
                                                 key={code.label}
                                                 className="rounded-[1.5rem] border border-slate-800/80 bg-slate-950/90 p-5 text-sm text-slate-300"
                                             >
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <div>
-                                                        <p className="font-semibold text-white">{code.label}</p>
+                                                <div className="flex min-w-0 items-center justify-between gap-4">
+                                                    <div className="min-w-0">
+                                                        <p className="truncate font-semibold text-white">{code.label}</p>
                                                         <p className="text-xs text-slate-500">{code.language}</p>
                                                     </div>
                                                 </div>
-                                                <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-900 p-4 text-sm text-slate-200">
-                                                    <code>{code.snippet || 'No code snippet available.'}</code>
+                                                <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-900 p-4 text-sm text-slate-200 whitespace-pre-wrap break-words">
+                                                    <code className="block w-full">{code.snippet || 'No code snippet available.'}</code>
                                                 </pre>
                                             </div>
                                         ))
