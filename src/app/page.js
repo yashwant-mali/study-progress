@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import CodePopup from '@/components/CodePopup';
 import DashboardHeader from '@/components/DashboardHeader';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import MobileHeader from '@/components/MobileHeader';
 import Modal from '@/components/Modal';
 import QuickActions from '@/components/QuickActions';
 import Sidebar from '@/components/Sidebar';
@@ -30,6 +29,9 @@ export default function Home() {
   const [activeModal, setActiveModal] = useState(null);
   const [importText, setImportText] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [showOnlyNotes, setShowOnlyNotes] = useState(false);
 
   const selectedTopic = useMemo(
     () => topics.find((topic) => topic._id === selectedTopicId) || null,
@@ -58,7 +60,50 @@ export default function Home() {
   }, [topics]);
 
   const categories = useMemo(
-    () => [...new Set(topics.map((topic) => topic.category || 'General'))],
+    () => ['All', ...new Set(topics.map((topic) => topic.category || 'General'))],
+    [topics],
+  );
+
+  const filteredTopics = useMemo(() => {
+    let results = [...topics];
+
+    if (activeCategory !== 'All') {
+      results = results.filter((topic) => (topic.category || 'General') === activeCategory);
+    }
+
+    if (showOnlyNotes) {
+      results = results.filter((topic) => topic.description?.trim());
+    }
+
+    if (!searchQuery.trim()) {
+      return results;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return results.filter((topic) => {
+      const content = [
+        topic.title,
+        topic.category,
+        topic.description,
+        ...(topic.codes || []).map((code) => code.label),
+        ...(topic.codes || []).map((code) => code.language),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return content.includes(query);
+    });
+  }, [topics, activeCategory, searchQuery, showOnlyNotes]);
+
+  const recentActivity = useMemo(
+    () =>
+      [...topics]
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime(),
+        )
+        .slice(0, 4),
     [topics],
   );
 
@@ -68,7 +113,7 @@ export default function Home() {
         dispatch(selectTopic(result.payload[0]._id));
       }
     });
-  }, [dispatch]);
+  }, [dispatch, selectedTopicId]);
 
   const handleOpenCode = (topic, code) => {
     setSelectedCode(code);
@@ -171,12 +216,74 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-[#070B16] text-[#F8FAFC]">
       <div className="mx-auto grid max-w-[1700px] gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[280px_1fr]">
         <Sidebar categories={categories} isMobileOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
         <div className="space-y-6">
-          <MobileHeader onOpenMenu={() => setIsMobileMenuOpen(true)} />
+          <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-5 shadow-[0_30px_60px_rgba(0,0,0,0.26)] backdrop-blur-md sticky top-6 z-20">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="space-y-3">
+                <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Focused study</p>
+                <h1 className="text-3xl font-semibold text-[#F8FAFC]">Developer learning workspace</h1>
+                <p className="max-w-2xl text-sm leading-6 text-[#94A3B8]">
+                  Organize topics, save theory, review code, and keep a distraction-free study flow with premium developer tools.
+                </p>
+              </div>
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-[#94A3B8]">
+                Press <span className="mx-2 rounded-full bg-[#0F172A] px-2 py-1 text-[#F8FAFC]">⌘K</span> for commands
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
+              <label className="relative block">
+                <span className="sr-only">Search topics</span>
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search topics, notes, or languages"
+                  className="w-full rounded-[18px] border border-white/14 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategory('All');
+                  setShowOnlyNotes(false);
+                }}
+                className="inline-flex items-center justify-center rounded-[18px] border border-white/14 bg-white/5 px-4 py-3 text-sm font-semibold text-[#F8FAFC] transition hover:bg-white/10"
+              >
+                Reset filters
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveCategory(category)}
+                  className={`rounded-full border px-3 py-2 text-sm transition ${activeCategory === category
+                      ? 'border-[#3B82F6] bg-[#3B82F6]/10 text-[#F8FAFC]'
+                      : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#3B82F6] hover:bg-[#3B82F6]/10'
+                    }`}
+                >
+                  {category}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowOnlyNotes((current) => !current)}
+                className={`rounded-full border px-3 py-2 text-sm transition ${showOnlyNotes
+                    ? 'border-[#06B6D4] bg-[#06B6D4]/10 text-[#F8FAFC]'
+                    : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#06B6D4] hover:bg-[#06B6D4]/10'
+                  }`}
+              >
+                {showOnlyNotes ? 'Showing notes only' : 'Filter notes only'}
+              </button>
+            </div>
+          </div>
 
           <ErrorBoundary message="Dashboard header or quick actions failed to render.">
             <div className="grid gap-6 xl:grid-cols-[3fr_1fr]">
@@ -208,27 +315,27 @@ export default function Home() {
             </div>
           </ErrorBoundary>
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
             <section className="space-y-6">
-              <div className="rounded-[2rem] border border-slate-800/90 bg-slate-950/95 p-6 shadow-2xl shadow-slate-950/40">
+              <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Your Topics</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Topics in progress</h2>
+                    <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Topic stream</p>
+                    <h2 className="mt-2 text-3xl font-semibold text-white">Active study topics</h2>
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200">
-                    {topics.length} items
+                  <span className="inline-flex items-center rounded-full border border-white/14 bg-white/5 px-4 py-2 text-sm text-[#94A3B8]">
+                    {filteredTopics.length} visible topics
                   </span>
                 </div>
               </div>
 
               {loading ? (
-                <div className="rounded-[2rem] border border-slate-800/90 bg-slate-950/95 p-10 text-center text-slate-400 shadow-2xl shadow-slate-950/40">
+                <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-10 text-center text-[#94A3B8] shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
                   Loading topics...
                 </div>
               ) : (
                 <TopicTable
-                  topics={topics}
+                  topics={filteredTopics}
                   onOpenCode={handleOpenCode}
                   onTopicSelect={handleTopicSelect}
                   onEditTopic={handleEditTopic}
@@ -237,28 +344,70 @@ export default function Home() {
               )}
 
               {error ? (
-                <div className="rounded-[2rem] border border-rose-500/20 bg-rose-500/10 px-6 py-4 text-rose-100 shadow-sm">
+                <div className="rounded-[24px] border border-[#EF4444]/20 bg-[#7f1d1d]/10 px-6 py-4 text-[#fee2e2] shadow-sm">
                   {error}
                 </div>
               ) : null}
             </section>
 
             <aside className="space-y-6">
-              {isFormOpen ? (
-                <TopicForm
-                  initialTopic={editingTopic}
-                  onSubmit={handleSubmit}
-                  onCancel={() => setIsFormOpen(false)}
-                  submitLabel={editingTopic ? 'Update topic' : 'Create topic'}
-                />
-              ) : (
-                <TopicPanel
-                  topic={selectedTopic}
-                  onOpenCode={handleOpenCode}
-                  onEditTopic={handleEditTopic}
-                  onDeleteTopic={handleDeleteTopic}
-                />
-              )}
+              <div className="xl:sticky xl:top-6 xl:space-y-6">
+                {isFormOpen ? (
+                  <TopicForm
+                    initialTopic={editingTopic}
+                    onSubmit={handleSubmit}
+                    onCancel={() => setIsFormOpen(false)}
+                    submitLabel={editingTopic ? 'Update topic' : 'Create topic'}
+                  />
+                ) : (
+                  <TopicPanel
+                    topic={selectedTopic}
+                    onOpenCode={handleOpenCode}
+                    onEditTopic={handleEditTopic}
+                    onDeleteTopic={handleDeleteTopic}
+                  />
+                )}
+
+                <section className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Recent activity</p>
+                      <h2 className="mt-2 text-xl font-semibold text-white">Latest updates</h2>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#94A3B8]">
+                      {recentActivity.length} items
+                    </span>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    {recentActivity.length ? (
+                      recentActivity.map((topic) => (
+                        <button
+                          key={topic._id}
+                          type="button"
+                          onClick={() => handleTopicSelect(topic)}
+                          className="w-full rounded-[20px] border border-white/10 bg-[#0F172A] p-4 text-left transition hover:border-[#3B82F6]/30 hover:bg-[#17233b]"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-white">{topic.title}</p>
+                            <span className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">
+                              {topic.updatedAt
+                                ? new Date(topic.updatedAt).toLocaleDateString()
+                                : 'No date'}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
+                            {topic.description?.slice(0, 80) || 'No notes yet'}
+                          </p>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="rounded-[20px] border border-white/10 bg-[#0F172A] p-4 text-sm text-[#94A3B8]">
+                        No recent activity available yet. Start by adding a topic or updating a note.
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
             </aside>
           </div>
         </div>
@@ -279,29 +428,33 @@ export default function Home() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold text-white">Import notes</h3>
-                <p className="text-sm text-slate-400">Paste note text here to import into the selected topic or create a new quick note.</p>
+                <p className="text-sm text-[#94A3B8]">
+                  Paste note text here to import into the selected topic or create a new quick note.
+                </p>
               </div>
-              <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">{selectedTopic ? 'Imports to selected topic' : 'Creates new note'}</span>
+              <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-[#94A3B8]">
+                {selectedTopic ? 'Imports to selected topic' : 'Creates new note'}
+              </span>
             </div>
             <textarea
               value={importText}
               onChange={(event) => setImportText(event.target.value)}
               rows={10}
-              className="w-full rounded-3xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full rounded-[20px] border border-white/14 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
               placeholder="Paste your notes here..."
             />
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handleApplyImportNotes}
-                className="rounded-3xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                className="rounded-[18px] bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
               >
                 Import notes
               </button>
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="rounded-3xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm text-slate-200 transition hover:bg-slate-800"
+                className="rounded-[18px] border border-white/14 bg-white/5 px-5 py-3 text-sm text-[#F8FAFC] transition hover:bg-white/10"
               >
                 Cancel
               </button>
@@ -316,26 +469,30 @@ export default function Home() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold text-white">Cheatsheet preview</h3>
-                <p className="text-sm text-slate-400">Generate a quick summary of the selected topic.</p>
+                <p className="text-sm text-[#94A3B8]">Generate a quick summary of the selected topic.</p>
               </div>
-              <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">{selectedTopic.category || 'General'}</span>
+              <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-[#94A3B8]">
+                {selectedTopic.category || 'General'}
+              </span>
             </div>
-            <div className="rounded-3xl border border-slate-700 bg-slate-950 p-5 text-slate-100">
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Topic</p>
+            <div className="rounded-[20px] border border-white/14 bg-[#0F172A] p-5 text-[#E2E8F0]">
+              <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Topic</p>
               <h4 className="mt-2 text-xl font-semibold text-white">{selectedTopic.title}</h4>
-              <p className="mt-4 text-sm leading-7 text-slate-300">{selectedTopic.description || 'No description available.'}</p>
+              <p className="mt-4 text-sm leading-7 text-[#94A3B8]">{selectedTopic.description || 'No description available.'}</p>
               <div className="mt-5 space-y-3">
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Solutions</p>
+                <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Solutions</p>
                 {selectedTopic.codes?.length > 0 ? (
                   selectedTopic.codes.map((code) => (
-                    <div key={code.label} className="rounded-3xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-200">
+                    <div key={code.label} className="rounded-[18px] border border-white/10 bg-[#111827] p-4 text-sm text-[#E2E8F0]">
                       <div className="font-semibold text-white">{code.label}</div>
-                      <div className="mt-1 text-xs text-slate-400">{code.language}</div>
-                      <p className="mt-3 text-sm text-slate-300">{code.snippet?.slice(0, 120) || 'No code snippet provided.'}</p>
+                      <div className="mt-1 text-xs text-[#94A3B8]">{code.language}</div>
+                      <p className="mt-3 text-sm text-[#94A3B8]">{code.snippet?.slice(0, 120) || 'No code snippet provided.'}</p>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-3xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-400">No code examples are available for this topic yet.</div>
+                  <div className="rounded-[18px] border border-white/10 bg-[#111827] p-4 text-sm text-[#94A3B8]">
+                    No code examples are available for this topic yet.
+                  </div>
                 )}
               </div>
             </div>
@@ -348,14 +505,14 @@ export default function Home() {
                   );
                   alert('Cheatsheet copied to clipboard.');
                 }}
-                className="rounded-3xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                className="rounded-[18px] bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
               >
                 Copy cheatsheet
               </button>
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="rounded-3xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm text-slate-200 transition hover:bg-slate-800"
+                className="rounded-[18px] border border-white/14 bg-white/5 px-5 py-3 text-sm text-[#F8FAFC] transition hover:bg-white/10"
               >
                 Close
               </button>

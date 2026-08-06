@@ -1,3 +1,5 @@
+import IconButton from "./ui/IconButton";
+
 export default function QuickActions({
   onAddNewTopic,
   onImportNotes,
@@ -6,53 +8,74 @@ export default function QuickActions({
   hasSelectedTopic,
 }) {
   return (
-    <div data-component="QuickActions">
-      <aside className="space-y-5 rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-6 shadow-2xl shadow-slate-950/40">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                Quick Actions
-              </h2>
-              <p className="text-sm text-slate-400">
-                Fast access to key study tasks and workflows.
-              </p>
-            </div>
-          </div>
+    <aside className="rounded-[20px] border border-white/14 bg-[#111827]/95 p-5 shadow-[0_30px_60px_rgba(0,0,0,0.22)]">
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">
+            Quick actions
+          </p>
+          <h2 className="mt-3 text-xl font-semibold text-white">
+            Workflow shortcuts
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
+            Launch study tasks, import notes, and generate summaries with one
+            click.
+          </p>
         </div>
-        <div className="space-y-3">
+
+        <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="button"
             onClick={onAddNewTopic}
-            className="w-full rounded-3xl bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/10 transition hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-[18px] bg-[#3B82F6] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
           >
-            + Add New Topic
+            + Add topic
           </button>
           <button
             type="button"
             onClick={onImportNotes}
-            className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
+            className="inline-flex items-center justify-center rounded-[18px] border border-white/14 bg-white/5 px-4 py-3 text-sm font-semibold text-[#F8FAFC] transition hover:bg-white/10"
           >
-            Import Notes
+            Import notes
           </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="button"
             onClick={onNewCodeSolution}
-            className={`w-full rounded-3xl px-4 py-3 text-sm font-semibold transition ${hasSelectedTopic ? "bg-slate-900 text-slate-200 hover:bg-slate-800" : "cursor-not-allowed bg-slate-800/70 text-slate-500"}`}
             disabled={!hasSelectedTopic}
+            className={`inline-flex items-center justify-center rounded-[18px] px-4 py-3 text-sm font-semibold transition ${
+              hasSelectedTopic
+                ? "bg-white/5 text-[#F8FAFC] hover:bg-white/10"
+                : "cursor-not-allowed bg-white/5/50 text-[#94A3B8]"
+            }`}
           >
-            New Code Solution
+            New code solution
           </button>
           <button
             type="button"
             onClick={onGenerateCheatsheet}
-            className={`w-full rounded-3xl px-4 py-3 text-sm font-semibold transition ${hasSelectedTopic ? "bg-slate-900 text-slate-200 hover:bg-slate-800" : "cursor-not-allowed bg-slate-800/70 text-slate-500"}`}
             disabled={!hasSelectedTopic}
+            className={`inline-flex items-center justify-center rounded-[18px] px-4 py-3 text-sm font-semibold transition ${
+              hasSelectedTopic
+                ? "bg-white/5 text-[#F8FAFC] hover:bg-white/10"
+                : "cursor-not-allowed bg-white/5/50 text-[#94A3B8]"
+            }`}
           >
-            Generate Cheatsheet
+            Generate summary
           </button>
         </div>
-      </aside>
-    </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <IconButton
+            icon={<span className="text-lg">⌘</span>}
+            label="Command palette"
+            onClick={() => alert("Use ⌘K to open the command palette.")}
+            className="w-full justify-center text-white"
+          />
+        </div>
+      </div>
+    </aside>
   );
 }
