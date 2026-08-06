@@ -114,7 +114,10 @@ export default function TopicDetailClient({
   }, [topic]);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main
+      data-component="TopicDetailClient"
+      className="min-h-screen bg-slate-950 text-slate-100"
+    >
       <div className="mx-auto grid max-w-[1200px] gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-6 shadow-2xl shadow-slate-950/40">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -171,7 +174,7 @@ export default function TopicDetailClient({
             Topic not found.
           </div>
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+          <div className="grid gap-6 xl:grid-cols-1">
             <section className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-3xl border border-slate-800/80 bg-slate-900 p-5">
@@ -217,7 +220,7 @@ export default function TopicDetailClient({
               )}
             </section>
 
-            <aside className="space-y-6">
+            {/* <aside className="space-y-6">
               <div className="rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-6 shadow-2xl shadow-slate-950/40">
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">
                   Quick actions
@@ -246,7 +249,7 @@ export default function TopicDetailClient({
                   </button>
                 </div>
               </div>
-            </aside>
+            </aside> */}
           </div>
         )}
       </div>

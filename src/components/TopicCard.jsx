@@ -1,6 +1,9 @@
 export default function TopicCard({ topic, onOpenCode }) {
   return (
-    <article className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-950">
+    <article
+      data-component="TopicCard"
+      className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-950"
+    >
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-950 dark:text-white">

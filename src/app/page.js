@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CodePopup from '@/components/CodePopup';
 import DashboardHeader from '@/components/DashboardHeader';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import MobileHeader from '@/components/MobileHeader';
 import Modal from '@/components/Modal';
 import QuickActions from '@/components/QuickActions';
@@ -176,16 +177,38 @@ export default function Home() {
 
         <div className="space-y-6">
           <MobileHeader onOpenMenu={() => setIsMobileMenuOpen(true)} />
-          <DashboardHeader
-            stats={{
-              topicsAdded,
-              notesCreated,
-              codeSolutions,
-              overallProgress,
-            }}
-          />
 
-          <div className="grid gap-6 xl:grid-cols-[1.55fr_0.85fr]">
+          <ErrorBoundary message="Dashboard header or quick actions failed to render.">
+            <div className="grid gap-6 xl:grid-cols-[3fr_1fr]">
+              <DashboardHeader
+                stats={{
+                  topicsAdded,
+                  notesCreated,
+                  codeSolutions,
+                  overallProgress,
+                }}
+              />
+
+              <div className="xl:sticky xl:top-6 xl:self-start">
+                <QuickActions
+                  onAddNewTopic={handleAddNewTopic}
+                  onImportNotes={() => setActiveModal('import')}
+                  onNewCodeSolution={() => {
+                    if (!selectedTopic) {
+                      alert('Please select a topic first to add a code solution.');
+                      return;
+                    }
+                    setEditingTopic(selectedTopic);
+                    setIsFormOpen(true);
+                  }}
+                  onGenerateCheatsheet={handleGenerateCheatsheet}
+                  hasSelectedTopic={Boolean(selectedTopic)}
+                />
+              </div>
+            </div>
+          </ErrorBoundary>
+
+          <div className="grid gap-6 xl:grid-cols-2">
             <section className="space-y-6">
               <div className="rounded-[2rem] border border-slate-800/90 bg-slate-950/95 p-6 shadow-2xl shadow-slate-950/40">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -221,21 +244,6 @@ export default function Home() {
             </section>
 
             <aside className="space-y-6">
-              <QuickActions
-                onAddNewTopic={handleAddNewTopic}
-                onImportNotes={() => setActiveModal('import')}
-                onNewCodeSolution={() => {
-                  if (!selectedTopic) {
-                    alert('Please select a topic first to add a code solution.');
-                    return;
-                  }
-                  setEditingTopic(selectedTopic);
-                  setIsFormOpen(true);
-                }}
-                onGenerateCheatsheet={handleGenerateCheatsheet}
-                hasSelectedTopic={Boolean(selectedTopic)}
-              />
-
               {isFormOpen ? (
                 <TopicForm
                   initialTopic={editingTopic}

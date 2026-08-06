@@ -47,7 +47,7 @@ export default function TopicTable({
   }
 
   return (
-    <div className="space-y-6">
+    <div data-component="TopicTable" className="space-y-6">
       {categoryKeys.map((category) => (
         <section
           key={category}

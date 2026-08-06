@@ -1,6 +1,6 @@
 export default function MobileHeader({ onOpenMenu }) {
   return (
-    <div className="lg:hidden">
+    <div data-component="MobileHeader" className="lg:hidden">
       <div className="flex items-center justify-between rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-4 text-slate-200 shadow-2xl shadow-slate-950/40">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-slate-500">

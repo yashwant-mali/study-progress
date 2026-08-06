@@ -77,7 +77,7 @@ export default function Sidebar({ categories, isMobileOpen, onClose }) {
   );
 
   return (
-    <>
+    <div data-component="Sidebar">
       {isMobileOpen ? (
         <div className="fixed inset-0 z-50 flex items-start justify-start bg-slate-950/80 p-4 lg:hidden">
           <aside className="relative h-full w-full max-w-[280px] rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-6 text-slate-200 shadow-2xl shadow-slate-950/40">
@@ -96,6 +96,6 @@ export default function Sidebar({ categories, isMobileOpen, onClose }) {
       <aside className="hidden h-full w-full max-w-[260px] flex-col gap-6 rounded-[2rem] border border-slate-800/80 bg-slate-950/95 p-6 text-slate-200 shadow-2xl shadow-slate-950/40 lg:flex">
         {sidebarContent}
       </aside>
-    </>
+    </div>
   );
 }

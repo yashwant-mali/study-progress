@@ -1,6 +1,7 @@
 export default function Modal({ children, onClose }) {
   return (
     <div
+      data-component="Modal"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-8"
       onClick={onClose}
     >

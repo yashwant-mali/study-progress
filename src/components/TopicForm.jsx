@@ -81,6 +81,7 @@ export default function TopicForm({
 
   return (
     <form
+      data-component="TopicForm"
       onSubmit={handleSubmit}
       className="space-y-8 rounded-3xl border border-slate-200/90 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-950"
     >
