@@ -221,7 +221,7 @@ export default function Home() {
         <Sidebar categories={categories} isMobileOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
         <div className="space-y-6">
-          <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-5 shadow-[0_30px_60px_rgba(0,0,0,0.26)] backdrop-blur-md sticky top-6 z-20">
+          <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-5 shadow-[0_30px_60px_rgba(0,0,0,0.26)] backdrop-blur-md top-6 z-20">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="space-y-3">
                 <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Focused study</p>
@@ -265,8 +265,8 @@ export default function Home() {
                   type="button"
                   onClick={() => setActiveCategory(category)}
                   className={`rounded-full border px-3 py-2 text-sm transition ${activeCategory === category
-                      ? 'border-[#3B82F6] bg-[#3B82F6]/10 text-[#F8FAFC]'
-                      : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#3B82F6] hover:bg-[#3B82F6]/10'
+                    ? 'border-[#3B82F6] bg-[#3B82F6]/10 text-[#F8FAFC]'
+                    : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#3B82F6] hover:bg-[#3B82F6]/10'
                     }`}
                 >
                   {category}
@@ -276,8 +276,8 @@ export default function Home() {
                 type="button"
                 onClick={() => setShowOnlyNotes((current) => !current)}
                 className={`rounded-full border px-3 py-2 text-sm transition ${showOnlyNotes
-                    ? 'border-[#06B6D4] bg-[#06B6D4]/10 text-[#F8FAFC]'
-                    : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#06B6D4] hover:bg-[#06B6D4]/10'
+                  ? 'border-[#06B6D4] bg-[#06B6D4]/10 text-[#F8FAFC]'
+                  : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#06B6D4] hover:bg-[#06B6D4]/10'
                   }`}
               >
                 {showOnlyNotes ? 'Showing notes only' : 'Filter notes only'}
