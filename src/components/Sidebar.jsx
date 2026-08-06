@@ -104,7 +104,7 @@ export default function Sidebar({ categories, isMobileOpen, onClose }) {
     <div data-component="Sidebar">
       {isMobileOpen ? (
         <div className="fixed inset-0 z-50 flex items-start justify-start bg-[#040B1E]/90 p-4 lg:hidden">
-          <aside className="relative h-full w-full max-w-[280px] overflow-y-auto rounded-[24px] border border-white/10 bg-[#070B16]/95 p-5 text-[#E2E8F0] shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
+          <aside id="mobile-sidebar-menu" className="relative h-full w-full max-w-[280px] overflow-y-auto rounded-[24px] border border-white/10 bg-[#070B16]/95 p-5 text-[#E2E8F0] shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
             <button
               type="button"
               onClick={onClose}

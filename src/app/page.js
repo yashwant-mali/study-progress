@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import CodePopup from '@/components/CodePopup';
 import DashboardHeader from '@/components/DashboardHeader';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import MobileHeader from '@/components/MobileHeader';
 import Modal from '@/components/Modal';
 import QuickActions from '@/components/QuickActions';
 import Sidebar from '@/components/Sidebar';
@@ -222,6 +223,12 @@ export default function Home() {
 
         <div className="space-y-6">
           <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-5 shadow-[0_30px_60px_rgba(0,0,0,0.26)] backdrop-blur-md top-6 z-20">
+            <div className="mb-4">
+              <MobileHeader
+                isMenuOpen={isMobileMenuOpen}
+                onOpenMenu={() => setIsMobileMenuOpen(true)}
+              />
+            </div>
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="space-y-3">
                 <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Focused study</p>
