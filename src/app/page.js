@@ -485,7 +485,7 @@ export default function Home() {
             <div className="rounded-[20px] border border-white/14 bg-[#0F172A] p-5 text-[#E2E8F0]">
               <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Topic</p>
               <h4 className="mt-2 text-xl font-semibold text-white">{selectedTopic.title}</h4>
-              <p className="mt-4 text-sm leading-7 text-[#94A3B8]">{selectedTopic.description || 'No description available.'}</p>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[#94A3B8]">{selectedTopic.description || 'No description available.'}</p>
               <div className="mt-5 space-y-3">
                 <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Solutions</p>
                 {selectedTopic.codes?.length > 0 ? (

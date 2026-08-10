@@ -1,6 +1,9 @@
 import TopicDetailClient from '@/components/TopicDetailClient';
 import { getTopicById } from '@/controllers/topicController';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TopicDetailPage({ params }) {
     const resolvedParams = await params;
     const topicId = resolvedParams?.id ? String(resolvedParams.id) : '';

@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { listTopics } from '@/controllers/topicController';
 
+// Force this page to be rendered fresh on every request instead of being
+// statically generated at build time — otherwise newly added/edited topics
+// (and their theory notes) never show up here after deploy.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function NotesPage() {
     const topics = await listTopics();
 
@@ -43,7 +49,7 @@ export default async function NotesPage() {
                                 </div>
                                 <div className="mt-6 rounded-[1.5rem] border border-slate-800/80 bg-slate-950/90 p-5 text-sm leading-7 text-slate-300">
                                     {topic.description?.trim() ? (
-                                        <p>{topic.description}</p>
+                                        <p className="whitespace-pre-wrap">{topic.description}</p>
                                     ) : (
                                         <p className="text-slate-500">No theory notes available for this topic.</p>
                                     )}

@@ -104,7 +104,7 @@ export default function TopicPanel({
                     : "—"}
                 </span>
               </div>
-              <p className="mt-5 text-sm leading-7 text-slate-300">
+              <p className="mt-5 whitespace-pre-wrap text-sm leading-7 text-slate-300">
                 {topic.description ||
                   "No theory notes available for this topic yet."}
               </p>

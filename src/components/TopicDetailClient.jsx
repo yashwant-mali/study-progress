@@ -135,7 +135,7 @@ export default function TopicDetailClient({
                   </span>
                 ) : null}
               </div>
-              <p className="max-w-3xl text-sm leading-7 text-slate-400">
+              <p className="max-w-3xl whitespace-pre-wrap text-sm leading-7 text-slate-400">
                 {topic?.description ||
                   "Open a topic route to review theory notes, explore code examples, and track your study progress."}
               </p>

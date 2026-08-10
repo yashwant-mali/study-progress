@@ -9,7 +9,7 @@ export default function TopicCard({ topic, onOpenCode }) {
           <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
             {topic.title}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400">
+          <p className="mt-2 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-slate-600 dark:text-slate-400">
             {topic.description ||
               "No theory saved yet. Add notes for this topic."}
           </p>
