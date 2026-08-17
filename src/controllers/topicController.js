@@ -21,11 +21,14 @@ export async function addTopic(topic) {
         throw new Error('Topic title is required');
     }
 
+    const notes = typeof topic.notes === 'string' ? topic.notes : (typeof topic.description === 'string' ? topic.description : '');
+
     return createTopic({
         title: topic.title,
         category: topic.category || 'General',
-        description: topic.description || '',
-        codes: Array.isArray(topic.codes) ? topic.codes : [],
+        notes,
+        description: notes,
+        codes: [],
     });
 }
 
@@ -34,11 +37,14 @@ export async function editTopic(id, update) {
         throw new Error('Topic ID is required');
     }
 
+    const notes = typeof update.notes === 'string' ? update.notes : (typeof update.description === 'string' ? update.description : '');
+
     return updateTopic(id, {
         title: update.title,
         category: update.category || 'General',
-        description: update.description,
-        codes: update.codes,
+        notes,
+        description: notes,
+        codes: [],
     });
 }
 

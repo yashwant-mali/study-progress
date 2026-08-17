@@ -1,72 +1,21 @@
 import { useEffect, useState } from "react";
 
-const defaultCode = {
-  label: "Solution 1",
-  language: "JavaScript",
-  snippet: "",
-};
-
 export default function TopicForm({
   initialTopic,
+  defaultCategory = "General",
   onSubmit,
   onCancel,
   submitLabel = "Save topic",
 }) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("General");
-  const [description, setDescription] = useState("");
-  const [codes, setCodes] = useState([defaultCode]);
-  const [expandedCodes, setExpandedCodes] = useState([false]);
+  const [category, setCategory] = useState(defaultCategory || "General");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    const initialCodes =
-      initialTopic &&
-      Array.isArray(initialTopic.codes) &&
-      initialTopic.codes.length > 0
-        ? initialTopic.codes.map((code) => ({
-            label: code.label || "Solution",
-            language: code.language || "JavaScript",
-            snippet: code.snippet || "",
-          }))
-        : [defaultCode];
-
     setTitle(initialTopic?.title || "");
-    setCategory(initialTopic?.category || "General");
-    setDescription(initialTopic?.description || "");
-    setCodes(initialCodes);
-    setExpandedCodes(initialCodes.map(() => false));
-  }, [initialTopic]);
-
-  const handleCodeChange = (index, field, value) => {
-    setCodes((current) =>
-      current.map((code, idx) =>
-        idx === index ? { ...code, [field]: value } : code,
-      ),
-    );
-  };
-
-  const addCodeEntry = () => {
-    setCodes((current) => [
-      ...current,
-      {
-        label: `Solution ${current.length + 1}`,
-        language: "JavaScript",
-        snippet: "",
-      },
-    ]);
-    setExpandedCodes((current) => [...current, false]);
-  };
-
-  const removeCodeEntry = (index) => {
-    setCodes((current) => current.filter((_, idx) => idx !== index));
-    setExpandedCodes((current) => current.filter((_, idx) => idx !== index));
-  };
-
-  const toggleCodeExpanded = (index) => {
-    setExpandedCodes((current) =>
-      current.map((expanded, idx) => (idx === index ? !expanded : expanded)),
-    );
-  };
+    setCategory(initialTopic?.category || defaultCategory || "General");
+    setNotes(initialTopic?.notes || initialTopic?.description || "");
+  }, [initialTopic, defaultCategory]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -74,8 +23,8 @@ export default function TopicForm({
       id: initialTopic?._id,
       title,
       category,
-      description,
-      codes,
+      notes,
+      description: notes,
     });
   };
 
@@ -92,8 +41,8 @@ export default function TopicForm({
           </h2>
           <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
             {initialTopic
-              ? "Update the topic notes, category, or code solutions."
-              : "Create a new study topic with theory and code examples."}
+              ? "Update the topic notes and group without splitting theory from examples."
+              : "Create a topic with theory, explanations, and code in one notes document."}
           </p>
         </div>
         {onCancel ? (
@@ -115,8 +64,8 @@ export default function TopicForm({
           required
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="e.g., React hooks, Graph theory"
-          className="w-full rounded-[18px] border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+          placeholder="e.g., JavaScript Closures"
+          className="w-full rounded-[18px] border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20"
         />
       </div>
 
@@ -128,106 +77,36 @@ export default function TopicForm({
           value={category}
           onChange={(event) => setCategory(event.target.value)}
           placeholder="e.g., JavaScript, React, Algorithms"
-          className="w-full rounded-[18px] border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+          className="w-full rounded-[18px] border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20"
         />
       </div>
 
       <div className="space-y-4">
-        <label className="block text-sm font-semibold text-white">
-          Theory / notes
-        </label>
+        <div className="flex items-center justify-between gap-3">
+          <label className="block text-sm font-semibold text-white">
+            Notes
+          </label>
+          <span className="text-xs uppercase tracking-[0.25em] text-[#94A3B8]">
+            Theory + code
+          </span>
+        </div>
         <textarea
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="Write the concept explanation or formula notes here."
-          rows={6}
-          className="w-full rounded-[18px] border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          placeholder="Write your topic notes here. Use fenced code blocks for code examples.\n\n```javascript\nfunction greet(name) {\n  console.log(name);\n}\n```"
+          rows={10}
+          className="w-full rounded-[18px] border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20"
         />
-      </div>
-
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Code solutions</h3>
-            <p className="text-sm leading-6 text-[#94A3B8]">
-              Add code examples that support each topic and review them later.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={addCodeEntry}
-            className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-[#F8FAFC] transition hover:bg-white/10"
-          >
-            Add solution
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {codes.map((code, index) => (
-            <div
-              key={index}
-              className="rounded-[20px] border border-white/10 bg-[#0F172A]"
-            >
-              <button
-                type="button"
-                onClick={() => toggleCodeExpanded(index)}
-                className="flex w-full items-center justify-between rounded-[20px] px-4 py-4 text-left font-semibold text-white transition hover:bg-white/5"
-              >
-                <span>{code.label}</span>
-                <span className="text-sm text-[#94A3B8]">
-                  {expandedCodes[index] ? "Collapse" : "Expand"}
-                </span>
-              </button>
-
-              {expandedCodes[index] ? (
-                <div className="space-y-4 border-t border-white/10 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">
-                      Code details
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => removeCodeEntry(index)}
-                      className="rounded-[18px] border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#F8FAFC] transition hover:bg-white/10"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <input
-                    value={code.label}
-                    onChange={(event) =>
-                      handleCodeChange(index, "label", event.target.value)
-                    }
-                    placeholder="Solution title"
-                    className="w-full rounded-[18px] border border-white/10 bg-[#111827] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                  />
-                  <input
-                    value={code.language}
-                    onChange={(event) =>
-                      handleCodeChange(index, "language", event.target.value)
-                    }
-                    placeholder="Language (e.g., JavaScript, Python)"
-                    className="w-full rounded-[18px] border border-white/10 bg-[#111827] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                  />
-                  <textarea
-                    value={code.snippet}
-                    onChange={(event) =>
-                      handleCodeChange(index, "snippet", event.target.value)
-                    }
-                    placeholder="Paste the code snippet here."
-                    rows={5}
-                    className="w-full rounded-[18px] border border-white/10 bg-[#111827] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                  />
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
+        <p className="text-xs leading-5 text-[#94A3B8]">
+          Tip: keep theory as regular text and place code inside fenced blocks
+          such as{" "}
+          <span className="font-mono text-[#E2E8F0]">```javascript</span>.
+        </p>
       </div>
 
       <button
         type="submit"
-        className="inline-flex items-center justify-center rounded-[20px] bg-[#3B82F6] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
+        className="inline-flex items-center justify-center rounded-[20px] bg-gradient-to-r from-[#6366F1] to-[#4F46E5] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(99,102,241,0.35)] transition hover:from-[#4F46E5] hover:to-[#4338CA]"
       >
         {submitLabel}
       </button>
