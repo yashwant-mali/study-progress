@@ -1,13 +1,13 @@
 # Study Progress Next.js App
 
-This project is a study notes manager for developers and students. It stores topics with a theory section and multiple code solutions for each topic.
+This project is a study notes manager for developers and students. It stores each topic as a single notes document with theory and code together in a clean, grouped workflow.
 
 ## Features
 
-- Add study topics with theory and multiple code examples
-- View topics in a clean card layout
-- Open code examples in a popup window
-- Store notes in MongoDB Atlas through Next.js API routes
+- Add study topics with grouped categories and notes
+- Keep theory and code together in one notes document per topic
+- Review notes in a dedicated all-notes view and topic detail panel
+- Store topic data in MongoDB Atlas through Next.js API routes
 - MVC-style backend separation with models and controllers
 
 ## Setup

@@ -1,13 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import CodePopup from '@/components/CodePopup';
-import DashboardHeader from '@/components/DashboardHeader';
-import ErrorBoundary from '@/components/ErrorBoundary';
 import MobileHeader from '@/components/MobileHeader';
 import Modal from '@/components/Modal';
-import QuickActions from '@/components/QuickActions';
 import Sidebar from '@/components/Sidebar';
 import TopicForm from '@/components/TopicForm';
 import TopicPanel from '@/components/TopicPanel';
@@ -24,15 +20,19 @@ import {
 export default function Home() {
   const dispatch = useDispatch();
   const { items: topics, selectedTopicId, loading, error } = useSelector((state) => state.topics);
-  const [selectedCode, setSelectedCode] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [importText, setImportText] = useState('');
+  const [formDefaultCategory, setFormDefaultCategory] = useState('General');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [showOnlyNotes, setShowOnlyNotes] = useState(false);
+  const [isFocusedStudyOpen, setIsFocusedStudyOpen] = useState(false);
+  const [isTopicStreamOpen, setIsTopicStreamOpen] = useState(true);
+  const [isRecentActivityOpen, setIsRecentActivityOpen] = useState(false);
+  const searchInputRef = useRef(null);
 
   const selectedTopic = useMemo(
     () => topics.find((topic) => topic._id === selectedTopicId) || null,
@@ -41,23 +41,44 @@ export default function Home() {
 
   const topicsAdded = topics.length;
   const notesCreated = useMemo(
-    () => topics.reduce((sum, topic) => sum + (topic.description?.trim() ? 1 : 0), 0),
-    [topics],
-  );
-  const codeSolutions = useMemo(
-    () => topics.reduce((sum, topic) => sum + (topic.codes?.length || 0), 0),
+    () => topics.reduce((sum, topic) => sum + ((topic.notes || topic.description)?.trim() ? 1 : 0), 0),
     [topics],
   );
   const overallProgress = useMemo(() => {
     if (!topics.length) return 0;
-    const totalPossible = topics.length * 4;
-    const totalPoints = topics.reduce((sum, topic) => {
-      let points = 0;
-      if (topic.description?.trim()) points += 1;
-      points += Math.min(3, topic.codes?.length || 0);
-      return sum + points;
-    }, 0);
-    return Math.round((totalPoints / totalPossible) * 100);
+    return Math.round((topics.filter((topic) => (topic.notes || topic.description)?.trim()).length / topics.length) * 100);
+  }, [topics]);
+
+  // Consecutive-day streak based on when topics were created or last updated.
+  const studyStreak = useMemo(() => {
+    if (!topics.length) return 0;
+
+    const activeDays = new Set(
+      topics
+        .flatMap((topic) => [topic.createdAt, topic.updatedAt])
+        .filter(Boolean)
+        .map((date) => new Date(date).toDateString()),
+    );
+
+    let streak = 0;
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+
+    // Today doesn't have to have activity yet for the streak to still count,
+    // but if neither today nor yesterday has activity the streak is broken.
+    if (!activeDays.has(cursor.toDateString())) {
+      cursor.setDate(cursor.getDate() - 1);
+      if (!activeDays.has(cursor.toDateString())) {
+        return 0;
+      }
+    }
+
+    while (activeDays.has(cursor.toDateString())) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return streak;
   }, [topics]);
 
   const categories = useMemo(
@@ -73,7 +94,7 @@ export default function Home() {
     }
 
     if (showOnlyNotes) {
-      results = results.filter((topic) => topic.description?.trim());
+      results = results.filter((topic) => (topic.notes || topic.description)?.trim());
     }
 
     if (!searchQuery.trim()) {
@@ -85,9 +106,7 @@ export default function Home() {
       const content = [
         topic.title,
         topic.category,
-        topic.description,
-        ...(topic.codes || []).map((code) => code.label),
-        ...(topic.codes || []).map((code) => code.language),
+        topic.notes || topic.description,
       ]
         .filter(Boolean)
         .join(' ')
@@ -116,32 +135,38 @@ export default function Home() {
     });
   }, [dispatch, selectedTopicId]);
 
-  const handleOpenCode = (topic, code) => {
-    setSelectedCode(code);
-  };
+  // Global ⌘K / Ctrl+K shortcut jumps straight into the search box.
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  const handleSelectAlternative = (code) => {
-    setSelectedCode(code);
+  const focusSearch = () => {
+    searchInputRef.current?.focus();
   };
 
   const handleTopicSelect = (topic) => {
     dispatch(selectTopic(topic._id));
-    setSelectedCode(null);
     setEditingTopic(null);
     setIsFormOpen(false);
   };
 
-  const handleAddNewTopic = () => {
+  const handleAddNewTopic = (defaultGroup = 'General') => {
     dispatch(clearSelection());
     setEditingTopic(null);
-    setSelectedCode(null);
+    setFormDefaultCategory(defaultGroup || 'General');
     setIsFormOpen(true);
   };
 
   const handleEditTopic = (topic) => {
     dispatch(selectTopic(topic._id));
     setEditingTopic(topic);
-    setSelectedCode(null);
     setIsFormOpen(true);
   };
 
@@ -152,7 +177,6 @@ export default function Home() {
 
     try {
       await dispatch(deleteTopic(topic._id)).unwrap();
-      setSelectedCode(null);
       if (selectedTopicId === topic._id) {
         dispatch(clearSelection());
       }
@@ -171,14 +195,12 @@ export default function Home() {
         id: selectedTopic._id,
         title: selectedTopic.title,
         category: selectedTopic.category || 'General',
-        description: [selectedTopic.description, importText].filter(Boolean).join('\n\n'),
-        codes: selectedTopic.codes || [],
+        notes: [selectedTopic.notes || selectedTopic.description, importText].filter(Boolean).join('\n\n'),
       }
       : {
         title: 'Imported Notes',
         category: 'General',
-        description: importText,
-        codes: [],
+        notes: importText,
       };
 
     try {
@@ -192,14 +214,6 @@ export default function Home() {
     } catch (err) {
       // handled by Redux state
     }
-  };
-
-  const handleGenerateCheatsheet = () => {
-    if (!selectedTopic) {
-      alert('Please select a topic to generate a cheatsheet.');
-      return;
-    }
-    setActiveModal('cheatsheet');
   };
 
   const handleSubmit = async (topicData) => {
@@ -219,7 +233,15 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#070B16] text-[#F8FAFC]">
       <div className="mx-auto grid max-w-[1700px] gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[280px_1fr]">
-        <Sidebar categories={categories} isMobileOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        <Sidebar
+          categories={categories}
+          isMobileOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          stats={{ topicsAdded, notesCreated, overallProgress, streak: studyStreak }}
+          onAddNewTopic={() => handleAddNewTopic('General')}
+          onImportNotes={() => setActiveModal('import')}
+          onFocusSearch={focusSearch}
+        />
 
         <div className="space-y-6">
           <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-5 shadow-[0_30px_60px_rgba(0,0,0,0.26)] backdrop-blur-md top-6 z-20">
@@ -229,139 +251,153 @@ export default function Home() {
                 onOpenMenu={() => setIsMobileMenuOpen(true)}
               />
             </div>
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+
+            <button
+              type="button"
+              onClick={() => setIsFocusedStudyOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
               <div className="space-y-3">
                 <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Focused study</p>
                 <h1 className="text-3xl font-semibold text-[#F8FAFC]">Developer learning workspace</h1>
-                <p className="max-w-2xl text-sm leading-6 text-[#94A3B8]">
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-[#94A3B8]">
+                  Press <span className="mx-2 rounded-full bg-[#0F172A] px-2 py-1 text-[#F8FAFC]">⌘K</span> for commands
+                </div>
+                <span className="text-2xl text-[#94A3B8]">{isFocusedStudyOpen ? '−' : '+'}</span>
+              </div>
+            </button>
+
+            {isFocusedStudyOpen ? (
+              <>
+                <p className="mt-4 max-w-2xl text-sm leading-6 text-[#94A3B8]">
                   Organize topics, save theory, review code, and keep a distraction-free study flow with premium developer tools.
                 </p>
-              </div>
-              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-[#94A3B8]">
-                Press <span className="mx-2 rounded-full bg-[#0F172A] px-2 py-1 text-[#F8FAFC]">⌘K</span> for commands
-              </div>
-            </div>
 
-            <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
-              <label className="relative block">
-                <span className="sr-only">Search topics</span>
-                <input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search topics, notes, or languages"
-                  className="w-full rounded-[18px] border border-white/14 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveCategory('All');
-                  setShowOnlyNotes(false);
-                }}
-                className="inline-flex items-center justify-center rounded-[18px] border border-white/14 bg-white/5 px-4 py-3 text-sm font-semibold text-[#F8FAFC] transition hover:bg-white/10"
-              >
-                Reset filters
-              </button>
-            </div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
+                  <label className="relative block">
+                    <span className="sr-only">Search topics</span>
+                    <input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search topics, notes, or languages"
+                      className="w-full rounded-[18px] border border-white/14 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActiveCategory('All');
+                      setShowOnlyNotes(false);
+                    }}
+                    className="inline-flex items-center justify-center rounded-[18px] border border-white/14 bg-white/5 px-4 py-3 text-sm font-semibold text-[#F8FAFC] transition hover:bg-white/10"
+                  >
+                    Reset filters
+                  </button>
+                </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => setActiveCategory(category)}
-                  className={`rounded-full border px-3 py-2 text-sm transition ${activeCategory === category
-                    ? 'border-[#3B82F6] bg-[#3B82F6]/10 text-[#F8FAFC]'
-                    : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#3B82F6] hover:bg-[#3B82F6]/10'
-                    }`}
-                >
-                  {category}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setShowOnlyNotes((current) => !current)}
-                className={`rounded-full border px-3 py-2 text-sm transition ${showOnlyNotes
-                  ? 'border-[#06B6D4] bg-[#06B6D4]/10 text-[#F8FAFC]'
-                  : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#06B6D4] hover:bg-[#06B6D4]/10'
-                  }`}
-              >
-                {showOnlyNotes ? 'Showing notes only' : 'Filter notes only'}
-              </button>
-            </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setActiveCategory(category)}
+                      className={`rounded-full border px-3 py-2 text-sm transition ${activeCategory === category
+                        ? 'border-[#6366F1] bg-[#6366F1]/10 text-[#F8FAFC]'
+                        : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#6366F1] hover:bg-[#6366F1]/10'
+                        }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowOnlyNotes((current) => !current)}
+                    className={`rounded-full border px-3 py-2 text-sm transition ${showOnlyNotes
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#F8FAFC]'
+                      : 'border-white/10 bg-white/5 text-[#94A3B8] hover:border-[#22D3EE] hover:bg-[#22D3EE]/10'
+                      }`}
+                  >
+                    {showOnlyNotes ? 'Showing notes only' : 'Filter notes only'}
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
 
-          <ErrorBoundary message="Dashboard header or quick actions failed to render.">
-            <div className="grid gap-6 xl:grid-cols-[3fr_1fr]">
-              <DashboardHeader
-                stats={{
-                  topicsAdded,
-                  notesCreated,
-                  codeSolutions,
-                  overallProgress,
-                }}
-              />
+          <div className={`grid gap-6 ${isTopicStreamOpen ? 'xl:grid-cols-[1fr_2.2fr]' : 'xl:grid-cols-1'}`}>
+            {isTopicStreamOpen ? (
+              <section className="space-y-4">
+                <div className="rounded-[20px] border border-white/10 bg-[#111827]/95 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                  <button
+                    type="button"
+                    onClick={() => setIsTopicStreamOpen((current) => !current)}
+                    className="flex w-full items-center justify-between gap-3 text-left"
+                  >
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">Topic stream</p>
+                      <h2 className="mt-2 text-2xl font-semibold text-white">Active study topics</h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center rounded-full border border-white/14 bg-white/5 px-3 py-1.5 text-xs text-[#94A3B8]">
+                        {filteredTopics.length} visible topics
+                      </span>
+                      <span className="text-xl text-[#94A3B8]">−</span>
+                    </div>
+                  </button>
+                </div>
 
-              <div className="xl:sticky xl:top-6 xl:self-start">
-                <QuickActions
-                  onAddNewTopic={handleAddNewTopic}
-                  onImportNotes={() => setActiveModal('import')}
-                  onNewCodeSolution={() => {
-                    if (!selectedTopic) {
-                      alert('Please select a topic first to add a code solution.');
-                      return;
-                    }
-                    setEditingTopic(selectedTopic);
-                    setIsFormOpen(true);
-                  }}
-                  onGenerateCheatsheet={handleGenerateCheatsheet}
-                  hasSelectedTopic={Boolean(selectedTopic)}
-                />
-              </div>
-            </div>
-          </ErrorBoundary>
-
-          <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-            <section className="space-y-6">
-              <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Topic stream</p>
-                    <h2 className="mt-2 text-3xl font-semibold text-white">Active study topics</h2>
+                {loading ? (
+                  <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-10 text-center text-[#94A3B8] shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
+                    Loading topics...
                   </div>
-                  <span className="inline-flex items-center rounded-full border border-white/14 bg-white/5 px-4 py-2 text-sm text-[#94A3B8]">
-                    {filteredTopics.length} visible topics
-                  </span>
-                </div>
+                ) : (
+                  <TopicTable
+                    topics={filteredTopics}
+                    selectedTopic={selectedTopic}
+                    onTopicSelect={handleTopicSelect}
+                    onEditTopic={handleEditTopic}
+                    onDeleteTopic={handleDeleteTopic}
+                    onAddTopicToGroup={(category) => handleAddNewTopic(category)}
+                  />
+                )}
+
+                {error ? (
+                  <div className="rounded-[24px] border border-[#EF4444]/20 bg-[#7f1d1d]/10 px-6 py-4 text-[#fee2e2] shadow-sm">
+                    {error}
+                  </div>
+                ) : null}
+              </section>
+            ) : (
+              <div className="rounded-[20px] border border-white/10 bg-[#111827]/95 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                <button
+                  type="button"
+                  onClick={() => setIsTopicStreamOpen((current) => !current)}
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                >
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">Topic stream</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-white">Active study topics</h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center rounded-full border border-white/14 bg-white/5 px-3 py-1.5 text-xs text-[#94A3B8]">
+                      {filteredTopics.length} visible topics
+                    </span>
+                    <span className="text-xl text-[#94A3B8]">+</span>
+                  </div>
+                </button>
               </div>
-
-              {loading ? (
-                <div className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-10 text-center text-[#94A3B8] shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
-                  Loading topics...
-                </div>
-              ) : (
-                <TopicTable
-                  topics={filteredTopics}
-                  onOpenCode={handleOpenCode}
-                  onTopicSelect={handleTopicSelect}
-                  onEditTopic={handleEditTopic}
-                  onDeleteTopic={handleDeleteTopic}
-                />
-              )}
-
-              {error ? (
-                <div className="rounded-[24px] border border-[#EF4444]/20 bg-[#7f1d1d]/10 px-6 py-4 text-[#fee2e2] shadow-sm">
-                  {error}
-                </div>
-              ) : null}
-            </section>
+            )}
 
             <aside className="space-y-6">
               <div className="xl:sticky xl:top-6 xl:space-y-6">
                 {isFormOpen ? (
                   <TopicForm
                     initialTopic={editingTopic}
+                    defaultCategory={formDefaultCategory}
                     onSubmit={handleSubmit}
                     onCancel={() => setIsFormOpen(false)}
                     submitLabel={editingTopic ? 'Update topic' : 'Create topic'}
@@ -369,65 +405,65 @@ export default function Home() {
                 ) : (
                   <TopicPanel
                     topic={selectedTopic}
-                    onOpenCode={handleOpenCode}
                     onEditTopic={handleEditTopic}
                     onDeleteTopic={handleDeleteTopic}
                   />
                 )}
 
-                <section className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
-                  <div className="flex items-center justify-between gap-3">
+                <section className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-4 shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
+                  <button
+                    type="button"
+                    onClick={() => setIsRecentActivityOpen((current) => !current)}
+                    className="flex w-full items-center justify-between gap-3 text-left"
+                  >
                     <div>
-                      <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Recent activity</p>
+                      <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">Recent activity</p>
                       <h2 className="mt-2 text-xl font-semibold text-white">Latest updates</h2>
                     </div>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#94A3B8]">
-                      {recentActivity.length} items
-                    </span>
-                  </div>
-                  <div className="mt-5 space-y-3">
-                    {recentActivity.length ? (
-                      recentActivity.map((topic) => (
-                        <button
-                          key={topic._id}
-                          type="button"
-                          onClick={() => handleTopicSelect(topic)}
-                          className="w-full rounded-[20px] border border-white/10 bg-[#0F172A] p-4 text-left transition hover:border-[#3B82F6]/30 hover:bg-[#17233b]"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-semibold text-white">{topic.title}</p>
-                            <span className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">
-                              {topic.updatedAt
-                                ? new Date(topic.updatedAt).toLocaleDateString()
-                                : 'No date'}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
-                            {topic.description?.slice(0, 80) || 'No notes yet'}
-                          </p>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="rounded-[20px] border border-white/10 bg-[#0F172A] p-4 text-sm text-[#94A3B8]">
-                        No recent activity available yet. Start by adding a topic or updating a note.
-                      </div>
-                    )}
-                  </div>
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#94A3B8]">
+                        {recentActivity.length} items
+                      </span>
+                      <span className="text-lg text-[#94A3B8]">{isRecentActivityOpen ? '−' : '+'}</span>
+                    </div>
+                  </button>
+
+                  {isRecentActivityOpen ? (
+                    <div className="mt-5 space-y-3">
+                      {recentActivity.length ? (
+                        recentActivity.map((topic) => (
+                          <button
+                            key={topic._id}
+                            type="button"
+                            onClick={() => handleTopicSelect(topic)}
+                            className="w-full rounded-[20px] border border-white/10 bg-[#0F172A] p-4 text-left transition hover:border-[#6366F1]/40 hover:bg-[#17233b]"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-white">{topic.title}</p>
+                              <span className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">
+                                {topic.updatedAt
+                                  ? new Date(topic.updatedAt).toLocaleDateString()
+                                  : 'No date'}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
+                              {(topic.notes || topic.description)?.slice(0, 80) || 'No notes yet'}
+                            </p>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="rounded-[20px] border border-white/10 bg-[#0F172A] p-4 text-sm text-[#94A3B8]">
+                          No recent activity available yet. Start by adding a topic or updating a note.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </section>
               </div>
             </aside>
           </div>
         </div>
       </div>
-
-      {selectedCode && selectedTopic ? (
-        <CodePopup
-          code={selectedCode}
-          alternatives={selectedTopic.codes}
-          onSelectAlternative={handleSelectAlternative}
-          onClose={() => setSelectedCode(null)}
-        />
-      ) : null}
 
       {activeModal === 'import' ? (
         <Modal onClose={() => setActiveModal(null)}>
@@ -447,14 +483,14 @@ export default function Home() {
               value={importText}
               onChange={(event) => setImportText(event.target.value)}
               rows={10}
-              className="w-full rounded-[20px] border border-white/14 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+              className="w-full rounded-[20px] border border-white/14 bg-[#0F172A] px-4 py-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20"
               placeholder="Paste your notes here..."
             />
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handleApplyImportNotes}
-                className="rounded-[18px] bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
+                className="rounded-[18px] bg-gradient-to-r from-[#6366F1] to-[#4F46E5] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(99,102,241,0.35)] transition hover:from-[#4F46E5] hover:to-[#4338CA]"
               >
                 Import notes
               </button>
@@ -470,63 +506,6 @@ export default function Home() {
         </Modal>
       ) : null}
 
-      {activeModal === 'cheatsheet' && selectedTopic ? (
-        <Modal onClose={() => setActiveModal(null)}>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-semibold text-white">Cheatsheet preview</h3>
-                <p className="text-sm text-[#94A3B8]">Generate a quick summary of the selected topic.</p>
-              </div>
-              <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-[#94A3B8]">
-                {selectedTopic.category || 'General'}
-              </span>
-            </div>
-            <div className="rounded-[20px] border border-white/14 bg-[#0F172A] p-5 text-[#E2E8F0]">
-              <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Topic</p>
-              <h4 className="mt-2 text-xl font-semibold text-white">{selectedTopic.title}</h4>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[#94A3B8]">{selectedTopic.description || 'No description available.'}</p>
-              <div className="mt-5 space-y-3">
-                <p className="text-sm uppercase tracking-[0.35em] text-[#94A3B8]">Solutions</p>
-                {selectedTopic.codes?.length > 0 ? (
-                  selectedTopic.codes.map((code) => (
-                    <div key={code.label} className="rounded-[18px] border border-white/10 bg-[#111827] p-4 text-sm text-[#E2E8F0]">
-                      <div className="font-semibold text-white">{code.label}</div>
-                      <div className="mt-1 text-xs text-[#94A3B8]">{code.language}</div>
-                      <p className="mt-3 text-sm text-[#94A3B8]">{code.snippet?.slice(0, 120) || 'No code snippet provided.'}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-[18px] border border-white/10 bg-[#111827] p-4 text-sm text-[#94A3B8]">
-                    No code examples are available for this topic yet.
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `Cheatsheet for ${selectedTopic.title}:\n\n${selectedTopic.description || ''}`,
-                  );
-                  alert('Cheatsheet copied to clipboard.');
-                }}
-                className="rounded-[18px] bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563eb]"
-              >
-                Copy cheatsheet
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="rounded-[18px] border border-white/14 bg-white/5 px-5 py-3 text-sm text-[#F8FAFC] transition hover:bg-white/10"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </Modal>
-      ) : null}
     </main>
   );
 }

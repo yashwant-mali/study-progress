@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import CodePopup from "@/components/CodePopup";
 import TopicForm from "@/components/TopicForm";
 import TopicPanel from "@/components/TopicPanel";
+import { getCategoryColor } from "@/lib/categoryColor";
 
 export default function TopicDetailClient({
   initialTopic,
@@ -13,7 +13,6 @@ export default function TopicDetailClient({
 }) {
   const router = useRouter();
   const [topic, setTopic] = useState(initialTopic);
-  const [selectedCode, setSelectedCode] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(serverError || "");
@@ -41,11 +40,6 @@ export default function TopicDetailClient({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleOpenCode = (topicItem, code) => {
-    setTopic(topicItem);
-    setSelectedCode(code);
   };
 
   const handleDeleteTopic = async () => {
@@ -103,13 +97,11 @@ export default function TopicDetailClient({
   };
 
   const summary = useMemo(() => {
-    if (!topic) return { notes: 0, codes: 0, progress: 0 };
-    const notes = topic.description?.trim() ? 1 : 0;
-    const codes = topic.codes?.length || 0;
+    if (!topic) return { notes: 0, progress: 0 };
+    const notes = (topic.notes || topic.description)?.trim() ? 1 : 0;
     return {
       notes,
-      codes,
-      progress: Math.round(((notes + Math.min(3, codes)) / 4) * 100),
+      progress: notes ? 100 : 0,
     };
   }, [topic]);
 
@@ -130,14 +122,17 @@ export default function TopicDetailClient({
                   {topic?.title || "Topic details"}
                 </h1>
                 {topic?.category ? (
-                  <span className="rounded-full bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-200">
+                  <span
+                    className={`rounded-full border px-3 py-1 text-sm font-semibold ${getCategoryColor(topic.category).border} ${getCategoryColor(topic.category).bg} ${getCategoryColor(topic.category).text}`}
+                  >
                     {topic.category}
                   </span>
                 ) : null}
               </div>
               <p className="max-w-3xl whitespace-pre-wrap text-sm leading-7 text-slate-400">
-                {topic?.description ||
-                  "Open a topic route to review theory notes, explore code examples, and track your study progress."}
+                {topic?.notes ||
+                  topic?.description ||
+                  "Open a topic route to review the complete notes for this topic."}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -187,10 +182,10 @@ export default function TopicDetailClient({
                 </div>
                 <div className="rounded-3xl border border-slate-800/80 bg-slate-900 p-5">
                   <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                    Code samples
+                    Notes
                   </p>
                   <p className="mt-3 text-xl font-semibold text-white">
-                    {summary.codes}
+                    {summary.notes}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-slate-800/80 bg-slate-900 p-5">
@@ -213,7 +208,6 @@ export default function TopicDetailClient({
               ) : (
                 <TopicPanel
                   topic={topic}
-                  onOpenCode={handleOpenCode}
                   onEditTopic={() => setIsEditing(true)}
                   onDeleteTopic={handleDeleteTopic}
                 />
@@ -229,8 +223,7 @@ export default function TopicDetailClient({
                   {topic.title}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-400">
-                  Keep your route open while you review theory and try sample
-                  solutions.
+                  Keep your notes open while you review the topic and work through examples.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <button
@@ -253,15 +246,6 @@ export default function TopicDetailClient({
           </div>
         )}
       </div>
-
-      {selectedCode && topic ? (
-        <CodePopup
-          code={selectedCode}
-          alternatives={topic.codes}
-          onSelectAlternative={(code) => setSelectedCode(code)}
-          onClose={() => setSelectedCode(null)}
-        />
-      ) : null}
     </main>
   );
 }
