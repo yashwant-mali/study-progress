@@ -1,5 +1,7 @@
 import TopicDetailClient from '@/components/TopicDetailClient';
 import { getTopicById } from '@/controllers/topicController';
+import { cookies } from 'next/headers';
+import { getSessionCookieName, verifyToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,14 +12,20 @@ export default async function TopicDetailPage({ params }) {
     let topic = null;
     let serverError = '';
 
-    if (!topicId) {
-        serverError = 'Topic ID is required';
-    } else {
-        try {
-            topic = await getTopicById(topicId);
-        } catch (error) {
-            serverError = error.message || 'Could not load topic';
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get(getSessionCookieName())?.value;
+        const session = verifyToken(token);
+
+        if (!session?.sub) {
+            serverError = 'Authentication required';
+        } else if (!topicId) {
+            serverError = 'Topic ID is required';
+        } else {
+            topic = await getTopicById(topicId, session.sub);
         }
+    } catch (error) {
+        serverError = error.message || 'Could not load topic';
     }
 
     return (

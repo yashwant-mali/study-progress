@@ -20,6 +20,7 @@ import {
 export default function Home() {
   const dispatch = useDispatch();
   const { items: topics, selectedTopicId, loading, error } = useSelector((state) => state.topics);
+  const { user, initialized: authInitialized } = useSelector((state) => state.auth);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
@@ -128,12 +129,13 @@ export default function Home() {
   );
 
   useEffect(() => {
+    if (!authInitialized || !user) return;
     dispatch(fetchTopics()).then((result) => {
       if (result.meta.requestStatus === 'fulfilled' && result.payload.length && !selectedTopicId) {
         dispatch(selectTopic(result.payload[0]._id));
       }
     });
-  }, [dispatch, selectedTopicId]);
+  }, [dispatch, selectedTopicId, authInitialized, user]);
 
   // Global ⌘K / Ctrl+K shortcut jumps straight into the search box.
   useEffect(() => {
@@ -229,6 +231,16 @@ export default function Home() {
       // handled by Redux state
     }
   };
+
+  if (!authInitialized) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#070B16] text-[#F8FAFC]">
+        <p className="text-sm text-[#94A3B8]">Loading your study workspace…</p>
+      </main>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <main className="min-h-screen bg-[#070B16] text-[#F8FAFC]">
