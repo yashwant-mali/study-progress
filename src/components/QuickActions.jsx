@@ -1,4 +1,8 @@
-export default function QuickActions({ onAddNewTopic, onImportNotes, onFocusSearch }) {
+export default function QuickActions({
+  onAddNewTopic,
+  onImportNotes,
+  onFocusSearch,
+}) {
   return (
     <aside className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-5 shadow-[0_24px_50px_rgba(0,0,0,0.18)] backdrop-blur-sm">
       <div className="flex flex-col gap-4">
@@ -9,10 +13,10 @@ export default function QuickActions({ onAddNewTopic, onImportNotes, onFocusSear
           <h2 className="mt-3 text-[2rem] font-semibold leading-none text-white">
             Workflow shortcuts
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
+          {/* <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
             Create topic notes, import collections, and keep each study topic
             focused in one place.
-          </p>
+          </p> */}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -32,7 +36,7 @@ export default function QuickActions({ onAddNewTopic, onImportNotes, onFocusSear
           </button>
         </div>
 
-        <div className="pt-1">
+        {/* <div className="pt-1">
           <button
             type="button"
             onClick={onFocusSearch}
@@ -44,7 +48,7 @@ export default function QuickActions({ onAddNewTopic, onImportNotes, onFocusSear
               ⌘K
             </span>
           </button>
-        </div>
+        </div> */}
       </div>
     </aside>
   );

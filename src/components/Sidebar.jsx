@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "@/store/authSlice";
 import DashboardHeader from "./DashboardHeader";
 import QuickActions from "./QuickActions";
 import { getCategoryColor } from "@/lib/categoryColor";
+import { useRouter } from "next/navigation";
 
 export default function Sidebar({
   categories,
@@ -12,18 +17,23 @@ export default function Sidebar({
   onImportNotes,
   onFocusSearch,
 }) {
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+  const router = useRouter();
   const navigation = [
     { label: "Topics", href: "/", active: true },
     { label: "All Notes", href: "/notes" },
   ];
 
-  const collectionItems = categories.filter((category) => category !== "All").slice(0, 5);
+  const collectionItems = categories
+    .filter((category) => category !== "All")
+    .slice(0, 5);
   const streak = stats?.streak ?? 0;
   const streakWidth = Math.min(streak * 12, 100);
 
   const sidebarContent = (
     <div className="flex h-full flex-col gap-6">
-      <div className="space-y-3">
+      {/* <div className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="grid h-12 w-12 place-items-center rounded-[18px] bg-gradient-to-br from-[#6366F1] to-[#22D3EE] text-lg font-bold text-white shadow-[0_18px_40px_rgba(99,102,241,0.35)]">
             SF
@@ -35,15 +45,36 @@ export default function Sidebar({
             <h1 className="text-xl font-semibold text-[#F8FAFC]">Dashboard</h1>
           </div>
         </div>
+      </div> */}
+
+      <div className="rounded-[20px] border border-white/14 bg-[#111827] p-4">
+        <div className="flex flex-col gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
+              {user?.name || user?.email}
+            </p>
+            <p className="truncate text-xs text-[#94A3B8]">{user?.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await dispatch(logout()).unwrap();
+              router.replace("/login");
+            }}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
-        <DashboardHeader stats={stats || {}} />
         <QuickActions
           onAddNewTopic={onAddNewTopic}
           onImportNotes={onImportNotes}
           onFocusSearch={onFocusSearch}
         />
+        <DashboardHeader stats={stats || {}} />
       </div>
 
       <nav className="space-y-5 text-sm text-[#E2E8F0]">
@@ -72,7 +103,7 @@ export default function Sidebar({
           </ul>
         </div>
 
-        <div className="rounded-[20px] border border-white/14 bg-[#111827] p-4 shadow-[0_24px_50px_rgba(0,0,0,0.18)]">
+        {/* <div className="rounded-[20px] border border-white/14 bg-[#111827] p-4 shadow-[0_24px_50px_rgba(0,0,0,0.18)]">
           <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">
             <span>Collections</span>
             <span className="rounded-full border border-white/10 px-2 py-1 text-[#E2E8F0]">
@@ -103,7 +134,7 @@ export default function Sidebar({
               </li>
             )}
           </ul>
-        </div>
+        </div> */}
       </nav>
 
       <div className="mt-auto rounded-[20px] border border-white/14 bg-gradient-to-b from-[#111827] to-[#0F172A] p-5 shadow-[0_24px_50px_rgba(0,0,0,0.18)]">

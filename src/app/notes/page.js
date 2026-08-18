@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { listTopics } from '@/controllers/topicController';
 import { parseNotesBlocks } from '@/lib/notes';
 import { getCategoryColor } from '@/lib/categoryColor';
+import { cookies } from 'next/headers';
+import { verifyToken, getSessionCookieName } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 // Force this page to be rendered fresh on every request instead of being
 // statically generated at build time — otherwise newly added/edited topics
@@ -10,7 +13,15 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function NotesPage() {
-    const topics = await listTopics();
+    const cookieStore = await cookies();
+    const token = cookieStore.get(getSessionCookieName())?.value;
+    const session = verifyToken(token);
+
+    if (!session?.sub) {
+        redirect('/login');
+    }
+
+    const topics = await listTopics(session.sub);
 
     return (
         <main className="min-h-screen bg-slate-950 text-slate-100">
