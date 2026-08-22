@@ -32,6 +32,19 @@ function Sidebar({
   const streak = stats?.streak ?? 0;
   const streakWidth = Math.min(streak * 12, 100);
 
+  // On mobile, quick actions should also close the slide-in menu so the
+  // form/panel that opens underneath is actually visible. On desktop
+  // `onClose` just flips `isMobileMenuOpen` to false (it's already false
+  // there), so this is a no-op and doesn't change desktop behavior at all.
+  const handleAddNewTopic = (...args) => {
+    onClose?.();
+    onAddNewTopic?.(...args);
+  };
+  const handleImportNotes = (...args) => {
+    onClose?.();
+    onImportNotes?.(...args);
+  };
+
   const sidebarContent = (
     <div className="flex h-full flex-col gap-6">
       {/* <div className="space-y-3">
@@ -71,8 +84,8 @@ function Sidebar({
 
       <div className="space-y-4">
         <QuickActions
-          onAddNewTopic={onAddNewTopic}
-          onImportNotes={onImportNotes}
+          onAddNewTopic={handleAddNewTopic}
+          onImportNotes={handleImportNotes}
           onFocusSearch={onFocusSearch}
         />
         <DashboardHeader stats={stats || {}} />
@@ -163,9 +176,14 @@ function Sidebar({
   return (
     <div data-component="Sidebar">
       {isMobileOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-start bg-[#040B1E]/90 p-4 lg:hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-start bg-[#040B1E]/90 p-4 lg:hidden"
+          onClick={onClose}
+          role="presentation"
+        >
           <aside
             id="mobile-sidebar-menu"
+            onClick={(event) => event.stopPropagation()}
             className="relative h-full w-full max-w-[280px] overflow-y-auto rounded-[24px] border border-white/10 bg-[#070B16]/95 p-5 text-[#E2E8F0] shadow-[0_30px_60px_rgba(0,0,0,0.4)]"
           >
             <button

@@ -62,7 +62,26 @@ function TopicTable({
     }, {});
   }, [topics]);
 
-  const categoryKeys = Object.keys(groupedTopics);
+  // Normally category sections are derived purely from existing topics.
+  // But when adding a brand-new topic to a category (e.g. tapping the
+  // generic "+ Add topic" action in the mobile sidebar, which defaults to
+  // "General") that category might not have any topics yet — meaning
+  // there'd be no section at all for the inline mobile form to render
+  // under, and the form would silently have nowhere to appear. So if the
+  // mobile detail anchor points at a category with no existing topics,
+  // synthesize an (empty) section for it too. This only ever happens when
+  // `mobileDetailAnchor` is set, which is null on desktop, so desktop is
+  // unaffected.
+  const categoryKeys = useMemo(() => {
+    const keys = Object.keys(groupedTopics);
+    if (
+      mobileDetailAnchor?.type === "category" &&
+      !keys.includes(mobileDetailAnchor.id)
+    ) {
+      return [...keys, mobileDetailAnchor.id];
+    }
+    return keys;
+  }, [groupedTopics, mobileDetailAnchor]);
 
   const toggleCategory = (category) => {
     setOpenCategories((current) => ({
@@ -71,7 +90,9 @@ function TopicTable({
     }));
   };
 
-  if (!topics || topics.length === 0) {
+  const isAddingNewCategoryTopic = mobileDetailAnchor?.type === "category";
+
+  if ((!topics || topics.length === 0) && !isAddingNewCategoryTopic) {
     return (
       <div className="rounded-3xl border border-dashed border-white/15 bg-[#0B0F1F]/70 p-10 text-center text-[#94A3B8]">
         No topics created yet. Add one to start organizing your study groups.
@@ -82,6 +103,7 @@ function TopicTable({
   return (
     <div data-component="TopicTable" className="space-y-4">
       {categoryKeys.map((category) => {
+        const topicsInCategory = groupedTopics[category] || [];
         const color = getCategoryColor(category);
         const isOpen = Boolean(openCategories[category]);
         // Show the inline mobile add-form right under this category's
@@ -113,8 +135,8 @@ function TopicTable({
                 <span
                   className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${color.border} ${color.bg} ${color.text}`}
                 >
-                  {groupedTopics[category].length} topic
-                  {groupedTopics[category].length === 1 ? "" : "s"}
+                  {topicsInCategory.length} topic
+                  {topicsInCategory.length === 1 ? "" : "s"}
                 </span>
                 <span className="ml-auto text-lg text-[#94A3B8]">
                   {isOpen ? "−" : "+"}
@@ -155,7 +177,14 @@ function TopicTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {groupedTopics[category].map((topic) => {
+                      {topicsInCategory.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-5 py-6 text-center text-sm text-[#94A3B8]">
+                            No topics in this category yet — use the form above to add the first one.
+                          </td>
+                        </tr>
+                      ) : null}
+                      {topicsInCategory.map((topic) => {
                         const isMutating = mutatingId === topic._id;
                         const showInlineDetail =
                           mobileDetailAnchor?.type === "topic" &&
