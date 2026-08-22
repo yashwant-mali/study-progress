@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/store/authSlice";
 import DashboardHeader from "./DashboardHeader";
@@ -8,7 +9,7 @@ import QuickActions from "./QuickActions";
 import { getCategoryColor } from "@/lib/categoryColor";
 import { useRouter } from "next/navigation";
 
-export default function Sidebar({
+function Sidebar({
   categories,
   isMobileOpen,
   onClose,
@@ -185,3 +186,5 @@ export default function Sidebar({
     </div>
   );
 }
+
+export default memo(Sidebar);

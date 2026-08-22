@@ -149,7 +149,18 @@ export async function updateTopic(id, update, userId) {
         },
         { returnDocument: 'after' }
     );
-    return normalizeTopic(result.value);
+
+    // MongoDB Node driver v6+ returns the updated document directly from
+    // findOneAndUpdate, while v3-v5 wrap it in a `{ value }` result object.
+    // Handle both shapes so this doesn't silently break on a driver upgrade
+    // (this was previously causing the app to save correctly in the DB but
+    // return a null/undefined document, making it look like "nothing saved"
+    // until the page was refreshed and re-fetched the real data).
+    const updatedDoc = result && Object.prototype.hasOwnProperty.call(result, 'value')
+        ? result.value
+        : result;
+
+    return normalizeTopic(updatedDoc);
 }
 
 export async function deleteTopic(id, userId) {

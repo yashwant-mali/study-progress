@@ -1,6 +1,7 @@
+import { memo } from "react";
 import SectionCard from "./ui/SectionCard";
 
-export default function DashboardHeader({ stats = {} }) {
+function DashboardHeader({ stats = {} }) {
   const { topicsAdded = 0, notesCreated = 0, overallProgress = 0 } = stats;
 
   const summaryItems = [
@@ -67,3 +68,5 @@ export default function DashboardHeader({ stats = {} }) {
     </SectionCard>
   );
 }
+
+export default memo(DashboardHeader);

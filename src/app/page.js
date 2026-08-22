@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useDispatch, useSelector } from 'react-redux';
 import MobileHeader from '@/components/MobileHeader';
-import Modal from '@/components/Modal';
 import Sidebar from '@/components/Sidebar';
 import TopicForm from '@/components/TopicForm';
 import TopicPanel from '@/components/TopicPanel';
 import TopicTable from '@/components/TopicTable';
+import useIsDesktop from '@/lib/useIsDesktop';
 import {
   fetchTopics,
   addTopic,
@@ -17,9 +18,23 @@ import {
   clearSelection,
 } from '@/store/topicsSlice';
 
+// The "Import notes" modal is only needed once the user opens it, so it's
+// split into its own chunk instead of being bundled into the initial page
+// load.
+const Modal = dynamic(() => import('@/components/Modal'), { ssr: false });
+
+// Generates a unique client-only id used to optimistically render a
+// brand-new topic before the server has responded.
+function createTempId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `temp-${crypto.randomUUID()}`;
+  }
+  return `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function Home() {
   const dispatch = useDispatch();
-  const { items: topics, selectedTopicId, loading, error } = useSelector((state) => state.topics);
+  const { items: topics, selectedTopicId, loading, mutatingId, error } = useSelector((state) => state.topics);
   const { user, initialized: authInitialized } = useSelector((state) => state.auth);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState(null);
@@ -34,6 +49,7 @@ export default function Home() {
   const [isTopicStreamOpen, setIsTopicStreamOpen] = useState(true);
   const [isRecentActivityOpen, setIsRecentActivityOpen] = useState(false);
   const searchInputRef = useRef(null);
+  const isDesktop = useIsDesktop();
 
   const selectedTopic = useMemo(
     () => topics.find((topic) => topic._id === selectedTopicId) || null,
@@ -128,14 +144,23 @@ export default function Home() {
     [topics],
   );
 
+  // Fetch the full topic list ONCE when the user becomes authenticated.
+  // Important: selectedTopicId must NOT be a dependency here — clicking a
+  // topic only needs to update `selectedTopicId` locally in Redux, not
+  // re-fetch every topic (with its full notes text) from the database.
+  // Having it in the deps array was causing a full GET /api/topics
+  // round-trip on every single topic click, which is what made opening
+  // notes feel slow.
+  const hasFetchedRef = useRef(false);
   useEffect(() => {
-    if (!authInitialized || !user) return;
+    if (!authInitialized || !user || hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     dispatch(fetchTopics()).then((result) => {
-      if (result.meta.requestStatus === 'fulfilled' && result.payload.length && !selectedTopicId) {
+      if (result.meta.requestStatus === 'fulfilled' && result.payload.length) {
         dispatch(selectTopic(result.payload[0]._id));
       }
     });
-  }, [dispatch, selectedTopicId, authInitialized, user]);
+  }, [dispatch, authInitialized, user]);
 
   // Global ⌘K / Ctrl+K shortcut jumps straight into the search box.
   useEffect(() => {
@@ -149,30 +174,39 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const focusSearch = () => {
+  const focusSearch = useCallback(() => {
     searchInputRef.current?.focus();
-  };
+  }, []);
 
-  const handleTopicSelect = (topic) => {
+  const handleTopicSelect = useCallback((topic) => {
+    // Mobile-only: tapping the topic that's already open closes its
+    // inline notes again (toggle), instead of just re-selecting it.
+    // Desktop keeps its original behavior — clicking the already-selected
+    // topic there simply leaves the side panel showing its notes, exactly
+    // as before.
+    if (!isDesktop && !isFormOpen && selectedTopicId === topic._id) {
+      dispatch(clearSelection());
+      return;
+    }
     dispatch(selectTopic(topic._id));
     setEditingTopic(null);
     setIsFormOpen(false);
-  };
+  }, [dispatch, isDesktop, isFormOpen, selectedTopicId]);
 
-  const handleAddNewTopic = (defaultGroup = 'General') => {
+  const handleAddNewTopic = useCallback((defaultGroup = 'General') => {
     dispatch(clearSelection());
     setEditingTopic(null);
     setFormDefaultCategory(defaultGroup || 'General');
     setIsFormOpen(true);
-  };
+  }, [dispatch]);
 
-  const handleEditTopic = (topic) => {
+  const handleEditTopic = useCallback((topic) => {
     dispatch(selectTopic(topic._id));
     setEditingTopic(topic);
     setIsFormOpen(true);
-  };
+  }, [dispatch]);
 
-  const handleDeleteTopic = async (topic) => {
+  const handleDeleteTopic = useCallback(async (topic) => {
     if (!topic?._id || !confirm(`Delete topic “${topic.title}”?`)) {
       return;
     }
@@ -185,7 +219,7 @@ export default function Home() {
     } catch (err) {
       // error is already stored in Redux state
     }
-  };
+  }, [dispatch, selectedTopicId]);
 
   const handleApplyImportNotes = async () => {
     if (!importText.trim()) {
@@ -203,6 +237,7 @@ export default function Home() {
         title: 'Imported Notes',
         category: 'General',
         notes: importText,
+        tempId: createTempId(),
       };
 
     try {
@@ -219,16 +254,21 @@ export default function Home() {
   };
 
   const handleSubmit = async (topicData) => {
+    // Close the form immediately — the optimistic update in the Redux
+    // slice means the topic (or its edited notes) is already visible in
+    // the list/panel right away, so there's no need to block the UI on
+    // the network round-trip.
+    setEditingTopic(null);
+    setIsFormOpen(false);
+
     try {
       if (topicData.id) {
         await dispatch(updateTopic(topicData)).unwrap();
       } else {
-        await dispatch(addTopic(topicData)).unwrap();
+        await dispatch(addTopic({ ...topicData, tempId: createTempId() })).unwrap();
       }
-      setEditingTopic(null);
-      setIsFormOpen(false);
     } catch (err) {
-      // handled by Redux state
+      // handled by Redux state (error banner + optimistic rollback)
     }
   };
 
@@ -241,6 +281,36 @@ export default function Home() {
   }
 
   if (!user) return null;
+
+  // The node currently shown in the "detail" area — either the add/edit
+  // form or the read-only notes panel — plus an anchor describing which
+  // topic (or, for a brand-new topic, which category) it belongs to. On
+  // mobile this same node is rendered by TopicTable directly underneath
+  // the matching row/category so the person never has to scroll past the
+  // whole topic list to see it. Desktop keeps the separate side panel.
+  const detailNode = isFormOpen ? (
+    <TopicForm
+      initialTopic={editingTopic}
+      defaultCategory={formDefaultCategory}
+      onSubmit={handleSubmit}
+      onCancel={() => setIsFormOpen(false)}
+      submitLabel={editingTopic ? 'Update topic' : 'Create topic'}
+    />
+  ) : (
+    <TopicPanel
+      topic={selectedTopic}
+      onEditTopic={handleEditTopic}
+      onDeleteTopic={handleDeleteTopic}
+    />
+  );
+
+  const detailAnchor = isFormOpen
+    ? editingTopic
+      ? { type: 'topic', id: editingTopic._id }
+      : { type: 'category', id: formDefaultCategory || 'General' }
+    : selectedTopic
+      ? { type: 'topic', id: selectedTopic._id }
+      : null;
 
   return (
     <main className="min-h-screen bg-[#070B16] text-[#F8FAFC]">
@@ -374,6 +444,9 @@ export default function Home() {
                     onEditTopic={handleEditTopic}
                     onDeleteTopic={handleDeleteTopic}
                     onAddTopicToGroup={(category) => handleAddNewTopic(category)}
+                    mutatingId={mutatingId}
+                    mobileDetailAnchor={isDesktop ? null : detailAnchor}
+                    mobileDetailNode={isDesktop ? null : detailNode}
                   />
                 )}
 
@@ -406,21 +479,12 @@ export default function Home() {
 
             <aside className="space-y-6">
               <div className="xl:sticky xl:top-6 xl:space-y-6">
-                {isFormOpen ? (
-                  <TopicForm
-                    initialTopic={editingTopic}
-                    defaultCategory={formDefaultCategory}
-                    onSubmit={handleSubmit}
-                    onCancel={() => setIsFormOpen(false)}
-                    submitLabel={editingTopic ? 'Update topic' : 'Create topic'}
-                  />
-                ) : (
-                  <TopicPanel
-                    topic={selectedTopic}
-                    onEditTopic={handleEditTopic}
-                    onDeleteTopic={handleDeleteTopic}
-                  />
-                )}
+                {/* On mobile/tablet this same content is rendered inline by
+                    TopicTable right under the relevant topic, so it's kept
+                    out of the DOM here entirely (not just CSS-hidden) to
+                    guarantee it never shows twice. Desktop (xl+, matched by
+                    the same breakpoint as `isDesktop`) is untouched. */}
+                {isDesktop ? detailNode : null}
 
                 <section className="rounded-[24px] border border-white/10 bg-[#111827]/95 p-4 shadow-[0_30px_60px_rgba(0,0,0,0.24)]">
                   <button

@@ -3,7 +3,14 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 const initialState = {
     items: [],
     selectedTopicId: null,
+    // `loading` is ONLY for the initial full-list fetch — this is the only
+    // case that should show the big "Loading topics..." skeleton.
     loading: false,
+    // `mutatingId` is the _id of the topic currently being saved/deleted
+    // (or the special 'new' value while a brand-new topic is being created).
+    // The UI uses this to show a small inline spinner on just that one
+    // topic/row instead of re-rendering/hiding the whole topic list.
+    mutatingId: null,
     error: null,
 };
 
@@ -16,16 +23,19 @@ export const fetchTopics = createAsyncThunk('topics/fetchTopics', async () => {
 });
 
 export const addTopic = createAsyncThunk('topics/addTopic', async (topic) => {
+    // tempId is a client-only optimistic id, never sent to the server.
+    const { tempId, ...body } = topic;
     const response = await fetch('/api/topics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(topic),
+        body: JSON.stringify(body),
     });
     if (!response.ok) {
         const data = await response.json();
         throw new Error(data?.error || 'Unable to create topic');
     }
-    return response.json();
+    const data = await response.json();
+    return { ...data, tempId };
 });
 
 export const updateTopic = createAsyncThunk('topics/updateTopic', async (topic) => {
@@ -68,7 +78,9 @@ const topicsSlice = createSlice({
         },
         setError(state, action) {
             state.error = action.payload;
-            state.loading = false;
+        },
+        clearError(state) {
+            state.error = null;
         },
     },
     extraReducers: (builder) => {
@@ -85,51 +97,113 @@ const topicsSlice = createSlice({
                 state.loading = false;
                 state.error = action.error.message || 'Unable to load topics';
             })
-            .addCase(addTopic.pending, (state) => {
-                state.loading = true;
+
+            // ---- Add topic (optimistic) ----
+            .addCase(addTopic.pending, (state, action) => {
                 state.error = null;
+                const { tempId, ...body } = action.meta.arg;
+                if (tempId) {
+                    state.mutatingId = tempId;
+                    const now = new Date().toISOString();
+                    state.items.unshift({
+                        ...body,
+                        _id: tempId,
+                        createdAt: now,
+                        updatedAt: now,
+                        _optimistic: true,
+                    });
+                    state.selectedTopicId = tempId;
+                } else {
+                    state.mutatingId = 'new';
+                }
             })
             .addCase(addTopic.fulfilled, (state, action) => {
-                state.loading = false;
-                state.items.unshift(action.payload);
-                state.selectedTopicId = action.payload._id;
+                const { tempId, ...topic } = action.payload;
+                state.mutatingId = null;
+                if (tempId) {
+                    const idx = state.items.findIndex((item) => item._id === tempId);
+                    if (idx !== -1) {
+                        state.items[idx] = topic;
+                    } else {
+                        state.items.unshift(topic);
+                    }
+                    if (state.selectedTopicId === tempId) {
+                        state.selectedTopicId = topic._id;
+                    }
+                } else {
+                    state.items.unshift(topic);
+                    state.selectedTopicId = topic._id;
+                }
             })
             .addCase(addTopic.rejected, (state, action) => {
-                state.loading = false;
+                state.mutatingId = null;
+                const { tempId } = action.meta.arg || {};
+                if (tempId) {
+                    state.items = state.items.filter((item) => item._id !== tempId);
+                    if (state.selectedTopicId === tempId) {
+                        state.selectedTopicId = null;
+                    }
+                }
                 state.error = action.error.message || 'Unable to create topic';
             })
-            .addCase(updateTopic.pending, (state) => {
-                state.loading = true;
+
+            // ---- Update topic (optimistic, with rollback on failure) ----
+            .addCase(updateTopic.pending, (state, action) => {
                 state.error = null;
+                const { id } = action.meta.arg;
+                state.mutatingId = id;
+                const idx = state.items.findIndex((item) => item._id === id);
+                if (idx !== -1) {
+                    state.updateSnapshot = { id, previous: state.items[idx] };
+                    state.items[idx] = {
+                        ...state.items[idx],
+                        ...action.meta.arg,
+                        _optimistic: true,
+                    };
+                }
             })
             .addCase(updateTopic.fulfilled, (state, action) => {
-                state.loading = false;
-                state.items = state.items.map((topic) =>
-                    topic._id === action.payload._id ? action.payload : topic,
-                );
+                state.mutatingId = null;
+                state.updateSnapshot = null;
+                const idx = state.items.findIndex((item) => item._id === action.payload._id);
+                if (idx !== -1) {
+                    state.items[idx] = action.payload;
+                } else {
+                    state.items.push(action.payload);
+                }
                 state.selectedTopicId = action.payload._id;
             })
             .addCase(updateTopic.rejected, (state, action) => {
-                state.loading = false;
+                state.mutatingId = null;
                 state.error = action.error.message || 'Unable to update topic';
+                const { id } = action.meta.arg || {};
+                if (state.updateSnapshot?.id === id) {
+                    const idx = state.items.findIndex((item) => item._id === id);
+                    if (idx !== -1) {
+                        state.items[idx] = state.updateSnapshot.previous;
+                    }
+                }
+                state.updateSnapshot = null;
             })
-            .addCase(deleteTopic.pending, (state) => {
-                state.loading = true;
+
+            // ---- Delete topic ----
+            .addCase(deleteTopic.pending, (state, action) => {
                 state.error = null;
+                state.mutatingId = action.meta.arg;
             })
             .addCase(deleteTopic.fulfilled, (state, action) => {
-                state.loading = false;
+                state.mutatingId = null;
                 state.items = state.items.filter((topic) => topic._id !== action.payload);
                 if (state.selectedTopicId === action.payload) {
                     state.selectedTopicId = null;
                 }
             })
             .addCase(deleteTopic.rejected, (state, action) => {
-                state.loading = false;
+                state.mutatingId = null;
                 state.error = action.error.message || 'Unable to delete topic';
             });
     },
 });
 
-export const { selectTopic, clearSelection, setError } = topicsSlice.actions;
+export const { selectTopic, clearSelection, setError, clearError } = topicsSlice.actions;
 export default topicsSlice.reducer;

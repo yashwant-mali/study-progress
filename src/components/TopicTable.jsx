@@ -1,26 +1,57 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getCategoryColor } from "@/lib/categoryColor";
 
-export default function TopicTable({
+function TopicTable({
   topics,
   selectedTopic,
   onTopicSelect,
   onEditTopic,
   onDeleteTopic,
   onAddTopicToGroup,
+  mutatingId,
+  mobileDetailAnchor,
+  mobileDetailNode,
 }) {
   const [openCategories, setOpenCategories] = useState({});
 
   useEffect(() => {
-    if (!selectedTopic) return;
+    // Auto-expand whichever category currently needs to be visible: the
+    // selected topic's category, or — when adding a brand-new topic to a
+    // category that has no topics selected yet — that category directly,
+    // so the inline mobile form has somewhere to appear.
+    const categoryToOpen =
+      mobileDetailAnchor?.type === "category"
+        ? mobileDetailAnchor.id
+        : selectedTopic?.category?.trim() || null;
 
-    const category = selectedTopic.category?.trim() || "General";
-    setOpenCategories((current) => ({
-      ...current,
-      [category]: true,
-    }));
-  }, [selectedTopic]);
+    if (!categoryToOpen) return;
+
+    setOpenCategories((current) => {
+      if (current[categoryToOpen]) return current;
+      return { ...current, [categoryToOpen]: true };
+    });
+  }, [selectedTopic, mobileDetailAnchor]);
+
+  useEffect(() => {
+    // Bring the inline mobile detail panel into view once it renders,
+    // so tapping a topic on mobile doesn't leave the person staring at
+    // the still-scrolled-away top of the topic list.
+    if (!mobileDetailAnchor || typeof window === "undefined") return;
+    if (window.innerWidth >= 1280) return; // xl breakpoint — desktop layout doesn't need this
+
+    const id =
+      mobileDetailAnchor.type === "topic"
+        ? `topic-detail-mobile-${mobileDetailAnchor.id}`
+        : `topic-detail-mobile-${mobileDetailAnchor.id}`;
+
+    const raf = requestAnimationFrame(() => {
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [mobileDetailAnchor]);
 
   const groupedTopics = useMemo(() => {
     return topics.reduce((acc, topic) => {
@@ -53,6 +84,13 @@ export default function TopicTable({
       {categoryKeys.map((category) => {
         const color = getCategoryColor(category);
         const isOpen = Boolean(openCategories[category]);
+        // Show the inline mobile add-form right under this category's
+        // header when a brand-new topic is being created for it (i.e.
+        // there's no specific existing topic row to anchor to).
+        const showCategoryLevelDetail =
+          isOpen &&
+          mobileDetailAnchor?.type === "category" &&
+          mobileDetailAnchor.id === category;
 
         return (
           <section
@@ -93,6 +131,11 @@ export default function TopicTable({
 
             {isOpen ? (
               <div className="px-4 pb-4">
+                {showCategoryLevelDetail ? (
+                  <div id={`topic-detail-mobile-${category}`} className="mb-4 xl:hidden">
+                    {mobileDetailNode}
+                  </div>
+                ) : null}
                 <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0F1425] text-sm">
                   <table className="min-w-full border-separate border-spacing-0 text-left">
                     <thead className="text-[#94A3B8]">
@@ -112,71 +155,100 @@ export default function TopicTable({
                       </tr>
                     </thead>
                     <tbody>
-                      {groupedTopics[category].map((topic) => (
-                        <tr
-                          key={String(topic._id)}
-                          className="cursor-pointer border-t border-white/5 transition hover:bg-white/5"
-                          onClick={() => onTopicSelect?.(topic)}
-                        >
-                          <td className="px-5 py-4 align-top">
-                            <div className="text-base font-semibold text-white">
-                              {topic.title}
-                            </div>
-                            <div className="mt-1 text-xs text-[#94A3B8]">
-                              {topic.notes?.trim()
-                                ? "Notes ready"
-                                : "No notes yet"}
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 align-top text-sm">
-                            {topic.notes?.trim() ? (
-                              <span className="inline-flex items-center rounded-full border border-[#34D399]/30 bg-[#34D399]/10 px-2.5 py-1 text-xs font-semibold text-[#34D399]">
-                                View in detail
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-2.5 py-1 text-xs font-semibold text-[#F59E0B]">
-                                Missing
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 align-top text-sm text-[#94A3B8]">
-                            {topic.updatedAt
-                              ? new Date(topic.updatedAt).toLocaleDateString()
-                              : "—"}
-                          </td>
-                          <td className="px-5 py-4 align-top text-sm">
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onEditTopic?.(topic);
-                                }}
-                                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onDeleteTopic?.(topic);
-                                }}
-                                className="rounded-full border border-rose-500 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
-                              >
-                                Delete
-                              </button>
-                              <Link
-                                href={`/topics/${topic._id}`}
-                                onClick={(event) => event.stopPropagation()}
-                                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-                              >
-                                Open route
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {groupedTopics[category].map((topic) => {
+                        const isMutating = mutatingId === topic._id;
+                        const showInlineDetail =
+                          mobileDetailAnchor?.type === "topic" &&
+                          mobileDetailAnchor.id === topic._id;
+
+                        return (
+                          <Fragment key={String(topic._id)}>
+                            <tr
+                              className={`cursor-pointer border-t border-white/5 transition hover:bg-white/5 ${
+                                showInlineDetail ? "xl:bg-transparent bg-white/5" : ""
+                              }`}
+                              onClick={() => onTopicSelect?.(topic)}
+                            >
+                              <td className="px-5 py-4 align-top">
+                                <div className="flex items-center gap-2 text-base font-semibold text-white">
+                                  {topic.title}
+                                  {isMutating ? (
+                                    <span
+                                      className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/20 border-t-[#6366F1]"
+                                      title="Saving..."
+                                      aria-label="Saving"
+                                    />
+                                  ) : null}
+                                </div>
+                                <div className="mt-1 text-xs text-[#94A3B8]">
+                                  {isMutating
+                                    ? "Saving..."
+                                    : topic.notes?.trim()
+                                      ? "Notes ready"
+                                      : "No notes yet"}
+                                </div>
+                              </td>
+                              <td className="px-5 py-4 align-top text-sm">
+                                {topic.notes?.trim() ? (
+                                  <span className="inline-flex items-center rounded-full border border-[#34D399]/30 bg-[#34D399]/10 px-2.5 py-1 text-xs font-semibold text-[#34D399]">
+                                    View in detail
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-full border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-2.5 py-1 text-xs font-semibold text-[#F59E0B]">
+                                    Missing
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4 align-top text-sm text-[#94A3B8]">
+                                {topic.updatedAt
+                                  ? new Date(topic.updatedAt).toLocaleDateString()
+                                  : "—"}
+                              </td>
+                              <td className="px-5 py-4 align-top text-sm">
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      onEditTopic?.(topic);
+                                    }}
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      onDeleteTopic?.(topic);
+                                    }}
+                                    disabled={isMutating}
+                                    className="rounded-full border border-rose-500 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    Delete
+                                  </button>
+                                  <Link
+                                    href={`/topics/${topic._id}`}
+                                    onClick={(event) => event.stopPropagation()}
+                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                                  >
+                                    Open route
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                            {showInlineDetail ? (
+                              <tr className="xl:hidden">
+                                <td colSpan={4} className="bg-transparent px-0 py-3">
+                                  <div id={`topic-detail-mobile-${topic._id}`}>
+                                    {mobileDetailNode}
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -188,3 +260,5 @@ export default function TopicTable({
     </div>
   );
 }
+
+export default memo(TopicTable);
