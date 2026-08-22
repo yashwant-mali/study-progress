@@ -1,4 +1,6 @@
-export default function MobileHeader({ onOpenMenu, isMenuOpen = false }) {
+import { memo } from "react";
+
+function MobileHeader({ onOpenMenu, isMenuOpen = false }) {
   return (
     <div data-component="MobileHeader" className="lg:hidden">
       <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-[#0B0F1F]/95 p-4 text-slate-200 shadow-2xl shadow-black/40">
@@ -33,3 +35,5 @@ export default function MobileHeader({ onOpenMenu, isMenuOpen = false }) {
     </div>
   );
 }
+
+export default memo(MobileHeader);

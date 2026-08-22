@@ -1,4 +1,6 @@
-export default function QuickActions({
+import { memo } from "react";
+
+function QuickActions({
   onAddNewTopic,
   onImportNotes,
   onFocusSearch,
@@ -53,3 +55,5 @@ export default function QuickActions({
     </aside>
   );
 }
+
+export default memo(QuickActions);

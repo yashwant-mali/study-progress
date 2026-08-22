@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
-export default function TopicForm({
+function TopicForm({
   initialTopic,
   defaultCategory = "General",
   onSubmit,
@@ -19,6 +19,10 @@ export default function TopicForm({
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    // The parent closes the form and applies an optimistic update right
+    // away (see Home's handleSubmit), so we intentionally don't await or
+    // track a local "submitting" state here — this form unmounts as soon
+    // as it's submitted.
     onSubmit({
       id: initialTopic?._id,
       title,
@@ -113,3 +117,5 @@ export default function TopicForm({
     </form>
   );
 }
+
+export default memo(TopicForm);

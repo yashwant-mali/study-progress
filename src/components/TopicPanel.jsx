@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import Link from "next/link";
 import { parseNotesBlocks } from "@/lib/notes";
 import { getCategoryColor } from "@/lib/categoryColor";
@@ -39,7 +39,7 @@ function CodeBlock({ language, content }) {
   );
 }
 
-export default function TopicPanel({ topic, onEditTopic, onDeleteTopic }) {
+function TopicPanel({ topic, onEditTopic, onDeleteTopic }) {
   if (!topic) {
     return (
       <div className="rounded-[1.5rem] border border-white/10 bg-[#0B0F1F]/95 p-6 text-slate-400 shadow-2xl shadow-black/40">
@@ -60,11 +60,19 @@ export default function TopicPanel({ topic, onEditTopic, onDeleteTopic }) {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-white">{topic.title}</h2>
-          <span
-            className={`mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${categoryColor.border} ${categoryColor.bg} ${categoryColor.text}`}
-          >
-            {topic.category || "General"}
-          </span>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${categoryColor.border} ${categoryColor.bg} ${categoryColor.text}`}
+            >
+              {topic.category || "General"}
+            </span>
+            {topic._optimistic ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-[#94A3B8]">
+                <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-white/20 border-t-[#6366F1]" />
+                Saving...
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -136,3 +144,5 @@ export default function TopicPanel({ topic, onEditTopic, onDeleteTopic }) {
     </div>
   );
 }
+
+export default memo(TopicPanel);
